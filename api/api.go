@@ -18,6 +18,6 @@ func Goodbye(w http.ResponseWriter, r *http.Request) {
 }
 
 func Operations(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "user: " + r.PostFormValue("user_name") + "<br>" +
-		   "text: " + r.PostFormValue("text"))
+	fmt.Fprint(w, "user: " + r.PostFormValue("user_name") +
+		   "\ntext: " + r.PostFormValue("text"))
 }
