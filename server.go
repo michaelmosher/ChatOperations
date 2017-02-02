@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"slackApi/api"
+	"os"
 )
 
 func Index(w http.ResponseWriter, r *http.Request) {
@@ -12,11 +13,12 @@ func Index(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	port := os.Getenv("PORT")
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", Index)
 	mux.HandleFunc("/api/hello", slackApi.Hello)
 	mux.HandleFunc("/api/goodbye", slackApi.Goodbye)
 
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	log.Fatal(http.ListenAndServe(":" + port, mux))
 }
