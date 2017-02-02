@@ -1,0 +1,6 @@
+{
+	"ImportPath": "slackApi",
+	"GoVersion": "go1.6",
+	"GodepVersion": "v78",
+	"Deps": []
+}
