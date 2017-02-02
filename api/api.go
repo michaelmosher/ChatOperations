@@ -16,3 +16,7 @@ func Hello(w http.ResponseWriter, r *http.Request) {
 func Goodbye(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "good bye!")
 }
+
+func Operations(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, "user: " + r.PostFormValue("user_name"))
+}
