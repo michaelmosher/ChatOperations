@@ -5,10 +5,15 @@ import (
 	"html/template"
 	"net/http"
 	"os"
+	"time"
 )
 
-var myToken = os.Getenv("SecretToken")
+var myToken = os.Getenv("VerificationToken")
 var templates = template.Must(template.ParseGlob("templates/*.json"))
+
+var netClient = &http.Client {
+	Timeout: time.Second * 10,
+}
 
 type SlackAction struct {
 	Name  string
@@ -59,6 +64,19 @@ func chooseActionReponse(w http.ResponseWriter, payload SlackPayload) {
 	} else {
 		templates.ExecuteTemplate(w, "coming_soon.json", "")
 	}
+}
+
+func chooseServerResponse(w http.ResponseWriter, payload SlackPayload) {
+	// user := payload.User
+	// server := payload.Actions[0].Value
+	// response_url := payload.Response_url
+	//
+	// _, err := netClient.Post()
+	//
+	// if err == nil {
+	// 	templates.ExecuteTemplate(w, "request_submitted", "")
+	// }
+	templates.ExecuteTemplate(w, "request_submitted", "")
 }
 
 func Operations(w http.ResponseWriter, r *http.Request) {
