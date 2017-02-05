@@ -84,14 +84,23 @@ func chooseServerResponse(w http.ResponseWriter, payload SlackPayload) {
 
 	reader, writer := io.Pipe()
 
-	templates.ExecuteTemplate(writer, "ops_request_submitted.json", opsRequest)
+	// writing without a reader will deadlock so write in a goroutine
+	go func() {
+		// it is important to close the writer or reading from the other end of the
+		// pipe will never finish
+		defer writer.Close()
+
+		templates.ExecuteTemplate(writer, "ops_request_submitted.json", opsRequest)
+    }()
+
 	resp, err := netClient.Post(webhookUrl, "application/json", reader)
-	defer resp.Body.Close()
 
 	if err != nil {
 		templates.ExecuteTemplate(w, "request_not_submitted", err.Error)
 		return
 	}
+
+	defer resp.Body.Close()
 	templates.ExecuteTemplate(w, "request_submitted.json", "")
 }
 
