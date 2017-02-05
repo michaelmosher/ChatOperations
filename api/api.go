@@ -3,15 +3,17 @@ package slackApi
 import (
 	"encoding/json"
 	"html/template"
+	"io"
 	"net/http"
 	"os"
 	"time"
 )
 
 var myToken = os.Getenv("VerificationToken")
+var webhookUrl = os.Getenv("WebhookUrl")
 var templates = template.Must(template.ParseGlob("templates/*.json"))
 
-var netClient = &http.Client {
+var netClient = &http.Client{
 	Timeout: time.Second * 10,
 }
 
@@ -46,6 +48,12 @@ type SlackPayload struct {
 	Response_url string
 }
 
+type OpsRequest struct {
+	User   SlackUser
+	Server string
+	Action string
+}
+
 func authorized(r *http.Request, p SlackPayload) bool {
 	if r.PostFormValue("token") == myToken {
 		return true
@@ -67,15 +75,23 @@ func chooseActionReponse(w http.ResponseWriter, payload SlackPayload) {
 }
 
 func chooseServerResponse(w http.ResponseWriter, payload SlackPayload) {
-	// user := payload.User
-	// server := payload.Actions[0].Value
+	opsRequest := OpsRequest{
+		payload.User,
+		payload.Actions[0].Value,
+		"config load",
+	}
 	// response_url := payload.Response_url
-	//
-	// _, err := netClient.Post()
-	//
-	// if err == nil {
-	// 	templates.ExecuteTemplate(w, "request_submitted", "")
-	// }
+
+	reader, writer := io.Pipe()
+
+	templates.ExecuteTemplate(writer, "ops_request_submitted.json", opsRequest)
+	resp, err := netClient.Post(webhookUrl, "application/json", reader)
+	defer resp.Body.Close()
+
+	if err != nil {
+		templates.ExecuteTemplate(w, "request_not_submitted", err.Error)
+		return
+	}
 	templates.ExecuteTemplate(w, "request_submitted.json", "")
 }
 
@@ -95,6 +111,8 @@ func Operations(w http.ResponseWriter, r *http.Request) {
 		chooseActionReponse(w, payload)
 	case "choose_server":
 		chooseServerResponse(w, payload)
+	case "ops_request_submitted":
+		templates.ExecuteTemplate(w, "under_development.json", "")
 	default:
 
 		templates.ExecuteTemplate(w, "choose_action.json", "")

@@ -1,5 +1,5 @@
 {
-    "text": "conor.livingston has requested config load on MoB Dev.",
+    "text": "{{.User.name}} has requested {{.Action}} on {{.Server}}.",
     "attachments": [
         {
             "text": "Please approve or reject the request:",
