@@ -1,0 +1,27 @@
+{
+    "text": "conor.livingston has requested config load on MoB Dev.",
+    "attachments": [
+        {
+            "text": "Please approve or reject the request:",
+            "fallback": "Please use an official Slack client for Ops help",
+            "callback_id": "ops_request_submitted",
+            "attachment_type": "default",
+            "actions": [
+                {
+                    "name": "approve",
+                    "text": "Approve",
+                   "style": "primary",
+                    "type": "button",
+                    "value": true
+                },
+                {
+                    "name": "reject",
+                    "text": "Deny",
+                   "style": "danger",
+                    "type": "button",
+                    "value": false
+                }
+            ]
+        }
+    ]
+}

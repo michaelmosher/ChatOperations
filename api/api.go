@@ -1,23 +1,69 @@
 package slackApi
 
 import (
-	"fmt"
+	"encoding/json"
+	"html/template"
 	"net/http"
+	"os"
 )
 
-func MyLibHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "This is where my API will go!")
+var myToken = os.Getenv("SecretToken")
+var templates = template.Must(template.ParseGlob("templates/*.json"))
+
+type SlackAction struct {
+	Name  string
+	Value string
 }
 
-func Hello(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "hello!")
+type SlackUser struct {
+	Id   string
+	Name string
 }
 
-func Goodbye(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "good bye!")
+type SlackChannel struct {
+	Id   string
+	Name string
+}
+
+type SlackTeam struct {
+	Id     string
+	Domain string
+}
+
+type SlackPayload struct {
+	Token        string
+	Actions      []SlackAction
+	Team         SlackTeam
+	Channel      SlackChannel
+	User         SlackUser
+	Callback_id  string
+	Message_ts   string
+	Response_url string
+}
+
+func chooseActionReponse(w http.ResponseWriter, payload SlackPayload) {
+	if payload.Actions[0].Value == "configLoad" {
+		templates.ExecuteTemplate(w, "choose_server.json", "")
+	} else {
+		templates.ExecuteTemplate(w, "coming_soon.json", "")
+	}
 }
 
 func Operations(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "user: " + r.PostFormValue("user_name") +
-		   "\ntext: " + r.PostFormValue("text"))
+	var payload SlackPayload
+	err := json.Unmarshal([]byte(r.PostFormValue("payload")), &payload)
+
+	if err != nil || payload.Token != myToken {
+		http.Error(w, "Invalid Token", http.StatusForbidden)
+		return
+	}
+
+	switch payload.Callback_id {
+	case "choose_action":
+		chooseActionReponse(w, payload)
+	case "choose_server":
+		templates.ExecuteTemplate(w, "coming_soon.json", "")
+	default:
+		templates.ExecuteTemplate(w, "choose_action.json", "")
+	}
 }
