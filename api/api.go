@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"fmt"
 )
 
 var myToken = os.Getenv("VerificationToken")
@@ -101,7 +102,9 @@ func chooseServerResponse(w http.ResponseWriter, payload SlackPayload) {
 	}
 
 	defer resp.Body.Close()
-	templates.ExecuteTemplate(w, "request_submitted.json", "")
+
+	fmt.Fprintln(w, resp.Body)
+	// templates.ExecuteTemplate(w, "request_submitted.json", "")
 }
 
 func Operations(w http.ResponseWriter, r *http.Request) {
