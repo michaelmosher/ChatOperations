@@ -105,7 +105,7 @@ func chooseServerResponse(w http.ResponseWriter, payload SlackPayload) {
 	defer resp.Body.Close()
 
 	bod, _ := ioutil.ReadAll(resp.Body)
-	fmt.Fprintln(w, bod)
+	fmt.Fprintln(w, string(bod))
 	// templates.ExecuteTemplate(w, "request_submitted.json", "")
 }
 
