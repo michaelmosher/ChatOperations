@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"slackApi/api"
 	"os"
+	"slackApi/api"
 )
 
 func Index(w http.ResponseWriter, r *http.Request) {
@@ -17,9 +17,10 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", Index)
-	mux.HandleFunc("/api/hello", slackApi.Hello)
-	mux.HandleFunc("/api/goodbye", slackApi.Goodbye)
 	mux.HandleFunc("/operations", slackApi.Operations)
 
-	log.Fatal(http.ListenAndServe(":" + port, mux))
+	// /oauth to start handshake
+	// /operations to do stuff
+
+	log.Fatal(http.ListenAndServe(":"+port, mux))
 }
