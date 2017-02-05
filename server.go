@@ -19,5 +19,8 @@ func main() {
 	mux.HandleFunc("/", Index)
 	mux.HandleFunc("/operations", slackApi.Operations)
 
-	log.Fatal(http.ListenAndServe(":" + port, mux))
+	// /oauth to start handshake
+	// /operations to do stuff
+
+	log.Fatal(http.ListenAndServe(":"+port, mux))
 }

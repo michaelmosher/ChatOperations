@@ -70,12 +70,15 @@ func Operations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+
 	switch payload.Callback_id {
 	case "choose_action":
 		chooseActionReponse(w, payload)
 	case "choose_server":
 		templates.ExecuteTemplate(w, "coming_soon.json", "")
 	default:
+
 		templates.ExecuteTemplate(w, "choose_action.json", "")
 	}
 }
