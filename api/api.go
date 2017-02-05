@@ -76,7 +76,7 @@ func chooseServerResponse(w http.ResponseWriter, payload SlackPayload) {
 	// if err == nil {
 	// 	templates.ExecuteTemplate(w, "request_submitted", "")
 	// }
-	templates.ExecuteTemplate(w, "request_submitted", "")
+	templates.ExecuteTemplate(w, "request_submitted.json", "")
 }
 
 func Operations(w http.ResponseWriter, r *http.Request) {
