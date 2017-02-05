@@ -94,7 +94,7 @@ func Operations(w http.ResponseWriter, r *http.Request) {
 	case "choose_action":
 		chooseActionReponse(w, payload)
 	case "choose_server":
-		templates.ExecuteTemplate(w, "coming_soon.json", "")
+		chooseServerResponse(w, payload)
 	default:
 
 		templates.ExecuteTemplate(w, "choose_action.json", "")
