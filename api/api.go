@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 	"fmt"
+	"io/ioutil"
 )
 
 var myToken = os.Getenv("VerificationToken")
@@ -103,7 +104,8 @@ func chooseServerResponse(w http.ResponseWriter, payload SlackPayload) {
 
 	defer resp.Body.Close()
 
-	fmt.Fprintln(w, resp.Body)
+	bod, _ := ioutil.ReadAll(resp.Body)
+	fmt.Fprintln(w, bod)
 	// templates.ExecuteTemplate(w, "request_submitted.json", "")
 }
 
