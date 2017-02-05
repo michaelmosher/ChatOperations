@@ -41,6 +41,18 @@ type SlackPayload struct {
 	Response_url string
 }
 
+func authorized(r *http.Request, p SlackPayload) bool {
+	if r.PostFormValue("token") == myToken {
+		return true
+	}
+
+	if p.Token == myToken {
+		return true
+	}
+
+	return false
+}
+
 func chooseActionReponse(w http.ResponseWriter, payload SlackPayload) {
 	if payload.Actions[0].Value == "configLoad" {
 		templates.ExecuteTemplate(w, "choose_server.json", "")
@@ -51,9 +63,9 @@ func chooseActionReponse(w http.ResponseWriter, payload SlackPayload) {
 
 func Operations(w http.ResponseWriter, r *http.Request) {
 	var payload SlackPayload
-	err := json.Unmarshal([]byte(r.PostFormValue("payload")), &payload)
+	json.Unmarshal([]byte(r.PostFormValue("payload")), &payload)
 
-	if err != nil || payload.Token != myToken {
+	if !authorized(r, payload) {
 		http.Error(w, "Invalid Token", http.StatusForbidden)
 		return
 	}
