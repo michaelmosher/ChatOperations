@@ -1,5 +1,5 @@
 {
-    "text": "{{.User.name}} has requested {{.Action}} on {{.Server}}.",
+    "text": "{{.User.Name}} has requested {{.Action}} on {{.Server}}.",
     "attachments": [
         {
             "text": "Please approve or reject the request:",
