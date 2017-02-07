@@ -2,5 +2,16 @@
 	"ImportPath": "slackApi",
 	"GoVersion": "go1.6",
 	"GodepVersion": "v78",
-	"Deps": []
+	"Deps": [
+		{
+			"ImportPath": "github.com/lib/pq",
+			"Comment": "go1.0-cutoff-147-g0477eb8",
+			"Rev": "0477eb88c5ca4009cb281f13c90633375b6a9987"
+		},
+		{
+			"ImportPath": "github.com/lib/pq/oid",
+			"Comment": "go1.0-cutoff-147-g0477eb8",
+			"Rev": "0477eb88c5ca4009cb281f13c90633375b6a9987"
+		}
+	]
 }
