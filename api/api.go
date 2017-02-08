@@ -13,6 +13,8 @@ var myToken = os.Getenv("VerificationToken")
 var webhookUrl = os.Getenv("WebhookUrl")
 var templates = template.Must(template.ParseGlob("templates/*.json"))
 
+var db, _ = NewDB(os.Getenv("DATABASE_URL"))
+
 var netClient = &http.Client{
 	Timeout: time.Second * 10,
 }
