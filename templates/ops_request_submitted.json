@@ -1,25 +1,25 @@
 {
-    "text": "{{.User.Name}} has requested {{.Action}} on {{.Server}}.",
+    "text": "{{.Requester}} has requested {{.Action}} on {{.Server}}.",
     "attachments": [
         {
             "text": "Please approve or reject the request:",
             "fallback": "Please use an official Slack client for Ops help",
-            "callback_id": "ops_request_submitted",
+            "callback_id": "{{.Id}}",
             "attachment_type": "default",
             "actions": [
                 {
-                    "name": "approve",
+                    "name": "ops_request_submitted",
                     "text": "Approve",
                    "style": "primary",
                     "type": "button",
-                    "value": true
+                    "value": "approved"
                 },
                 {
-                    "name": "reject",
+                    "name": "ops_request_submitted",
                     "text": "Deny",
                    "style": "danger",
                     "type": "button",
-                    "value": false
+                    "value": "rejected"
                 }
             ]
         }

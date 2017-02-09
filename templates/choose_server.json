@@ -4,7 +4,7 @@
         {
             "text": "Please choose a server:",
             "fallback": "Please use an official Slack client for Ops help",
-            "callback_id": "choose_server",
+            "callback_id": "{{.Id}}",
             "attachment_type": "default",
             "actions": [
                 {

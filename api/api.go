@@ -13,54 +13,19 @@ var myToken = os.Getenv("VerificationToken")
 var webhookUrl = os.Getenv("WebhookUrl")
 var templates = template.Must(template.ParseGlob("templates/*.json"))
 
-var db, _ = NewDB(os.Getenv("DATABASE_URL"))
+var DB, _ = NewDB(os.Getenv("DATABASE_URL"))
 
 var netClient = &http.Client{
 	Timeout: time.Second * 10,
 }
 
-type SlackAction struct {
-	Name  string
-	Value string
-}
-
-type SlackUser struct {
-	Id   string
-	Name string
-}
-
-type SlackChannel struct {
-	Id   string
-	Name string
-}
-
-type SlackTeam struct {
-	Id     string
-	Domain string
-}
-
-type SlackPayload struct {
-	Token        string
-	Actions      []SlackAction
-	Team         SlackTeam
-	Channel      SlackChannel
-	User         SlackUser
-	Callback_id  string
-	Message_ts   string
-	Response_url string
-}
-
-type OpsRequest struct {
-	User   SlackUser
-	Server string
-	Action string
-}
-
 func authorized(r *http.Request, p SlackPayload) bool {
+	// request came from a Slack slash-command
 	if r.PostFormValue("token") == myToken {
 		return true
 	}
 
+	// request came from a Slack interactive message
 	if p.Token == myToken {
 		return true
 	}
@@ -68,20 +33,31 @@ func authorized(r *http.Request, p SlackPayload) bool {
 	return false
 }
 
-func chooseActionReponse(w http.ResponseWriter, payload SlackPayload) {
-	if payload.Actions[0].Value == "configLoad" {
-		templates.ExecuteTemplate(w, "choose_server.json", "")
-	} else {
+func reportError(err error, response_url string) {
+	// post error to response_url
+}
+
+func chooseActionReponse(w http.ResponseWriter, payload SlackPayload, opsRequest OperationsRequest) {
+	action := payload.Actions[0].Value
+
+	if action == "else" {
 		templates.ExecuteTemplate(w, "coming_soon.json", "")
+		return
+	}
+
+	templates.ExecuteTemplate(w, "choose_server.json", opsRequest)
+
+	err := SaveAction(DB, opsRequest, action)
+
+	if err != nil {
+		response_url := payload.Response_url
+		reportError(err, response_url)
 	}
 }
 
-func chooseServerResponse(w http.ResponseWriter, payload SlackPayload) {
-	opsRequest := OpsRequest{
-		payload.User,
-		payload.Actions[0].Value,
-		"config load",
-	}
+func chooseServerResponse(w http.ResponseWriter, payload SlackPayload, opsRequest OperationsRequest) {
+	server := payload.Actions[0].Value
+	opsRequest.Server = server
 	// response_url := payload.Response_url
 
 	reader, writer := io.Pipe()
@@ -93,7 +69,7 @@ func chooseServerResponse(w http.ResponseWriter, payload SlackPayload) {
 		defer writer.Close()
 
 		templates.ExecuteTemplate(writer, "ops_request_submitted.json", opsRequest)
-    }()
+	}()
 
 	resp, err := netClient.Post(webhookUrl, "application/json", reader)
 
@@ -118,15 +94,23 @@ func Operations(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	switch payload.Callback_id {
+	if len(payload.Actions) == 0 {
+		templates.ExecuteTemplate(w, "choose_action.json", "")
+		return
+	}
+
+	var OpsRequest OperationsRequest
+
+	switch payload.Actions[0].Name {
 	case "choose_action":
-		chooseActionReponse(w, payload)
+		OpsRequest = NewRequest(DB, payload.User.Name)
+		chooseActionReponse(w, payload, OpsRequest)
 	case "choose_server":
-		chooseServerResponse(w, payload)
+		OpsRequest = LoadRequest(DB, payload.Callback_id)
+		chooseServerResponse(w, payload, OpsRequest)
 	case "ops_request_submitted":
 		templates.ExecuteTemplate(w, "under_development.json", "")
 	default:
-
 		templates.ExecuteTemplate(w, "choose_action.json", "")
 	}
 }
