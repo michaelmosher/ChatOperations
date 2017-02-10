@@ -46,7 +46,7 @@ func LoadRequest(db *sql.DB, requestId string) OperationsRequest {
 	)
 
 	err := db.QueryRow(
-		"select id, requester, action, server, request_url from Requests where id = $1", requestId,
+		"select id, requester, action, server, responder, approved, response_url from Requests where id = $1", requestId,
 	).Scan(&id, &requester, &action, &server, &responder, &approved, &response_url)
 	if err != nil {
 		log.Fatal(err)
