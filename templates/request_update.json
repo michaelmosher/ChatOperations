@@ -1,4 +1,4 @@
 {
-    "text": ":white_check_mark: michael.mosher {{if .Approved}} approved {{else}} rejected {{end}} this request.",
+    "text": ":white_check_mark: {{.Responder}} {{if .Approved}}approved{{else}}rejected{{end}} your request.",
     "replace_original": false
 }
