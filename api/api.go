@@ -13,7 +13,7 @@ var myToken = os.Getenv("VerificationToken")
 var webhookUrl = os.Getenv("WebhookUrl")
 var templates = template.Must(template.ParseGlob("templates/*.json"))
 
-var DB, _ = NewDB(os.Getenv("DATABASE_URL"))
+var db, _ = NewDB(os.Getenv("DATABASE_URL"))
 
 var netClient = &http.Client{
 	Timeout: time.Second * 10,
@@ -35,19 +35,30 @@ func authorized(r *http.Request, p SlackPayload) bool {
 
 func reportError(err error, response_url string) {
 	// post error to response_url
+	reader, writer := io.Pipe()
+
+	// writing without a reader will deadlock so write in a goroutine
+	go func() {
+		defer writer.Close()
+		templates.ExecuteTemplate(writer, "something_went_wrong.json", error.Error)
+	}()
+
+	resp, _ := netClient.Post(response_url, "application/json", reader)
+
+	defer resp.Body.Close()
 }
 
 func chooseActionReponse(w http.ResponseWriter, payload SlackPayload, opsRequest OperationsRequest) {
-	action := payload.Actions[0].Value
+	opsRequest.Action = payload.Actions[0].Value
 
-	if action == "else" {
+	if opsRequest.Action == "else" {
 		templates.ExecuteTemplate(w, "coming_soon.json", "")
 		return
 	}
 
 	templates.ExecuteTemplate(w, "choose_server.json", opsRequest)
 
-	err := SaveAction(DB, opsRequest, action)
+	err := UpdateRequest(db, opsRequest)
 
 	if err != nil {
 		response_url := payload.Response_url
@@ -56,18 +67,13 @@ func chooseActionReponse(w http.ResponseWriter, payload SlackPayload, opsRequest
 }
 
 func chooseServerResponse(w http.ResponseWriter, payload SlackPayload, opsRequest OperationsRequest) {
-	server := payload.Actions[0].Value
-	opsRequest.Server = server
-	// response_url := payload.Response_url
+	opsRequest.Server = payload.Actions[0].Value
 
 	reader, writer := io.Pipe()
 
 	// writing without a reader will deadlock so write in a goroutine
 	go func() {
-		// it is important to close the writer or reading from the other end of the
-		// pipe will never finish
 		defer writer.Close()
-
 		templates.ExecuteTemplate(writer, "ops_request_submitted.json", opsRequest)
 	}()
 
@@ -81,6 +87,35 @@ func chooseServerResponse(w http.ResponseWriter, payload SlackPayload, opsReques
 	defer resp.Body.Close()
 
 	templates.ExecuteTemplate(w, "request_submitted.json", "")
+
+	err = UpdateRequest(db, opsRequest)
+
+	if err != nil {
+		response_url := payload.Response_url
+		reportError(err, response_url)
+	}
+}
+
+func opsResponseReceiveResponse(w http.ResponseWriter, payload SlackPayload, opsRequest OperationsRequest) {
+	opsRequest.Responder = payload.User.Name
+
+	if payload.Actions[0].Value == "approved" {
+		opsRequest.Approved = true
+		templates.ExecuteTemplate(w, "ops_request_approved.json", opsRequest)
+	} else {
+		opsRequest.Approved = false
+		templates.ExecuteTemplate(w, "ops_request_rejected.json", opsRequest)
+	}
+
+	err := UpdateRequest(db, opsRequest)
+
+	if err != nil {
+		response_url := payload.Response_url
+		reportError(err, response_url)
+	}
+
+	// update requester?
+	// do thing
 }
 
 func Operations(w http.ResponseWriter, r *http.Request) {
@@ -103,13 +138,14 @@ func Operations(w http.ResponseWriter, r *http.Request) {
 
 	switch payload.Actions[0].Name {
 	case "choose_action":
-		OpsRequest = NewRequest(DB, payload.User.Name)
+		OpsRequest = NewRequest(db, payload.User.Name)
 		chooseActionReponse(w, payload, OpsRequest)
 	case "choose_server":
-		OpsRequest = LoadRequest(DB, payload.Callback_id)
+		OpsRequest = LoadRequest(db, payload.Callback_id)
 		chooseServerResponse(w, payload, OpsRequest)
 	case "ops_request_submitted":
-		templates.ExecuteTemplate(w, "under_development.json", "")
+		OpsRequest = LoadRequest(db, payload.Callback_id)
+		opsResponseReceiveResponse(w, payload, OpsRequest)
 	default:
 		templates.ExecuteTemplate(w, "choose_action.json", "")
 	}

@@ -1,8 +1,8 @@
 {
-    "text": "conor.livingston has requested config load on MoB Dev.",
+    "text": "{{.Requester}} has requested {{.Action}} on {{.Server}}.",
     "attachments": [
         {
-            "text": ":white_check_mark: michael.mosher approved this request."
+            "text": ":white_check_mark: {{.Responder}} approved this request."
         }
     ]
 }

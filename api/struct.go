@@ -36,4 +36,6 @@ type OperationsRequest struct {
 	Requester string
 	Server    string
 	Action    string
+	Responder string
+	Approved  bool
 }

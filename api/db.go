@@ -57,8 +57,9 @@ func LoadRequest(db *sql.DB, requestId string) OperationsRequest {
 	}
 }
 
-func SaveAction(db *sql.DB, opsRequest OperationsRequest, action string) error {
-	_, err := db.Exec("update Requests set action = $1 where id = $2", action, opsRequest.Id)
+func UpdateRequest(db *sql.DB, opsRequest OperationsRequest) error {
+    query := "update Requests set action = $2, server = $3, responder = $4, approved = $5 where id = $1"
+	_, err := db.Exec(query, opsRequest.Id, opsRequest.Action, opsRequest.Server, opsRequest.Responder, opsRequest.Approved)
 
 	if err != nil {
 		return err

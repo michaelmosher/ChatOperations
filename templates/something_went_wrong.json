@@ -1,0 +1,9 @@
+{
+    "text": "Something seems to have gone wrong. Please report this to @hostingteam.",
+    "attachments": [
+        {
+            "text": "{{.}}",
+            "color": "red"
+        }
+    ]
+}
