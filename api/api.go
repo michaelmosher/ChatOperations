@@ -13,52 +13,19 @@ var myToken = os.Getenv("VerificationToken")
 var webhookUrl = os.Getenv("WebhookUrl")
 var templates = template.Must(template.ParseGlob("templates/*.json"))
 
+var db, _ = NewDB(os.Getenv("DATABASE_URL"))
+
 var netClient = &http.Client{
 	Timeout: time.Second * 10,
 }
 
-type SlackAction struct {
-	Name  string
-	Value string
-}
-
-type SlackUser struct {
-	Id   string
-	Name string
-}
-
-type SlackChannel struct {
-	Id   string
-	Name string
-}
-
-type SlackTeam struct {
-	Id     string
-	Domain string
-}
-
-type SlackPayload struct {
-	Token        string
-	Actions      []SlackAction
-	Team         SlackTeam
-	Channel      SlackChannel
-	User         SlackUser
-	Callback_id  string
-	Message_ts   string
-	Response_url string
-}
-
-type OpsRequest struct {
-	User   SlackUser
-	Server string
-	Action string
-}
-
 func authorized(r *http.Request, p SlackPayload) bool {
+	// request came from a Slack slash-command
 	if r.PostFormValue("token") == myToken {
 		return true
 	}
 
+	// request came from a Slack interactive message
 	if p.Token == myToken {
 		return true
 	}
@@ -66,32 +33,49 @@ func authorized(r *http.Request, p SlackPayload) bool {
 	return false
 }
 
-func chooseActionReponse(w http.ResponseWriter, payload SlackPayload) {
-	if payload.Actions[0].Value == "configLoad" {
-		templates.ExecuteTemplate(w, "choose_server.json", "")
-	} else {
+func reportError(err error, response_url string) {
+	// post error to response_url
+	reader, writer := io.Pipe()
+
+	// writing without a reader will deadlock so write in a goroutine
+	go func() {
+		defer writer.Close()
+		templates.ExecuteTemplate(writer, "something_went_wrong.json", error.Error)
+	}()
+
+	resp, _ := netClient.Post(response_url, "application/json", reader)
+
+	defer resp.Body.Close()
+}
+
+func chooseActionReponse(w http.ResponseWriter, payload SlackPayload, opsRequest OperationsRequest) {
+	opsRequest.Action = payload.Actions[0].Value
+
+	if opsRequest.Action == "else" {
 		templates.ExecuteTemplate(w, "coming_soon.json", "")
+		return
+	}
+
+	templates.ExecuteTemplate(w, "choose_server.json", opsRequest)
+
+	err := UpdateRequest(db, opsRequest)
+
+	if err != nil {
+		response_url := payload.Response_url
+		reportError(err, response_url)
 	}
 }
 
-func chooseServerResponse(w http.ResponseWriter, payload SlackPayload) {
-	opsRequest := OpsRequest{
-		payload.User,
-		payload.Actions[0].Value,
-		"config load",
-	}
-	// response_url := payload.Response_url
+func chooseServerResponse(w http.ResponseWriter, payload SlackPayload, opsRequest OperationsRequest) {
+	opsRequest.Server = payload.Actions[0].Value
 
 	reader, writer := io.Pipe()
 
 	// writing without a reader will deadlock so write in a goroutine
 	go func() {
-		// it is important to close the writer or reading from the other end of the
-		// pipe will never finish
 		defer writer.Close()
-
 		templates.ExecuteTemplate(writer, "ops_request_submitted.json", opsRequest)
-    }()
+	}()
 
 	resp, err := netClient.Post(webhookUrl, "application/json", reader)
 
@@ -103,6 +87,35 @@ func chooseServerResponse(w http.ResponseWriter, payload SlackPayload) {
 	defer resp.Body.Close()
 
 	templates.ExecuteTemplate(w, "request_submitted.json", "")
+
+	err = UpdateRequest(db, opsRequest)
+
+	if err != nil {
+		response_url := payload.Response_url
+		reportError(err, response_url)
+	}
+}
+
+func opsResponseReceiveResponse(w http.ResponseWriter, payload SlackPayload, opsRequest OperationsRequest) {
+	opsRequest.Responder = payload.User.Name
+
+	if payload.Actions[0].Value == "approved" {
+		opsRequest.Approved = true
+		templates.ExecuteTemplate(w, "ops_request_approved.json", opsRequest)
+	} else {
+		opsRequest.Approved = false
+		templates.ExecuteTemplate(w, "ops_request_rejected.json", opsRequest)
+	}
+
+	err := UpdateRequest(db, opsRequest)
+
+	if err != nil {
+		response_url := payload.Response_url
+		reportError(err, response_url)
+	}
+
+	// update requester?
+	// do thing
 }
 
 func Operations(w http.ResponseWriter, r *http.Request) {
@@ -116,15 +129,24 @@ func Operations(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	switch payload.Callback_id {
-	case "choose_action":
-		chooseActionReponse(w, payload)
-	case "choose_server":
-		chooseServerResponse(w, payload)
-	case "ops_request_submitted":
-		templates.ExecuteTemplate(w, "under_development.json", "")
-	default:
+	if len(payload.Actions) == 0 {
+		templates.ExecuteTemplate(w, "choose_action.json", "")
+		return
+	}
 
+	var OpsRequest OperationsRequest
+
+	switch payload.Actions[0].Name {
+	case "choose_action":
+		OpsRequest = NewRequest(db, payload.User.Name)
+		chooseActionReponse(w, payload, OpsRequest)
+	case "choose_server":
+		OpsRequest = LoadRequest(db, payload.Callback_id)
+		chooseServerResponse(w, payload, OpsRequest)
+	case "ops_request_submitted":
+		OpsRequest = LoadRequest(db, payload.Callback_id)
+		opsResponseReceiveResponse(w, payload, OpsRequest)
+	default:
 		templates.ExecuteTemplate(w, "choose_action.json", "")
 	}
 }

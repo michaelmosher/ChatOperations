@@ -1,8 +1,8 @@
 {
-    "text": "conor.livingston has requested config load on MoB Dev.",
+    "text": "{{.Requester}} has requested {{.Action}} on {{.Server}}.",
     "attachments": [
         {
-            "text": ":x: michael.mosher rejected this request."
+            "text": ":x: {{.Responder}} rejected this request."
         }
     ]
 }
