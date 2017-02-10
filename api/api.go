@@ -124,7 +124,7 @@ func opsResponseReceiveResponse(w http.ResponseWriter, payload SlackPayload, ops
 	}
 
 	// update requester
-	err = httpPost(opsRequest.Response_url, "request_update.json", opsRequest)
+	err = httpPost(opsRequest.Response_url, "ops_request_submitted.json", opsRequest)
 	if err != nil {
 		response_url := payload.Response_url
 		reportError(err, response_url)
