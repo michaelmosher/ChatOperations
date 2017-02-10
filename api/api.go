@@ -33,6 +33,25 @@ func authorized(r *http.Request, p SlackPayload) bool {
 	return false
 }
 
+func httpPost(url string, template_name string, opsRequest OperationsRequest) error {
+	reader, writer := io.Pipe()
+
+	// writing without a reader will deadlock so write in a goroutine
+	go func() {
+		defer writer.Close()
+		templates.ExecuteTemplate(writer, template_name, opsRequest)
+	}()
+
+	resp, err := netClient.Post(url, "application/json", reader)
+
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+	return nil
+}
+
 func reportError(err error, response_url string) {
 	// post error to response_url
 	reader, writer := io.Pipe()
@@ -68,31 +87,21 @@ func chooseActionReponse(w http.ResponseWriter, payload SlackPayload, opsRequest
 
 func chooseServerResponse(w http.ResponseWriter, payload SlackPayload, opsRequest OperationsRequest) {
 	opsRequest.Server = payload.Actions[0].Value
+	opsRequest.Response_url = payload.Response_url
 
-	reader, writer := io.Pipe()
-
-	// writing without a reader will deadlock so write in a goroutine
-	go func() {
-		defer writer.Close()
-		templates.ExecuteTemplate(writer, "ops_request_submitted.json", opsRequest)
-	}()
-
-	resp, err := netClient.Post(webhookUrl, "application/json", reader)
+	err := httpPost(webhookUrl, "ops_request_submitted.json", opsRequest)
 
 	if err != nil {
-		templates.ExecuteTemplate(w, "request_not_submitted", err.Error)
+		templates.ExecuteTemplate(w, "request_not_submitted.json", err.Error)
 		return
 	}
-
-	defer resp.Body.Close()
 
 	templates.ExecuteTemplate(w, "request_submitted.json", "")
 
 	err = UpdateRequest(db, opsRequest)
 
 	if err != nil {
-		response_url := payload.Response_url
-		reportError(err, response_url)
+		reportError(err, opsRequest.Response_url)
 	}
 }
 
@@ -114,7 +123,9 @@ func opsResponseReceiveResponse(w http.ResponseWriter, payload SlackPayload, ops
 		reportError(err, response_url)
 	}
 
-	// update requester?
+	// update requester
+	err = httpPost(opsRequest.Response_url, "request_update.json", opsRequest)
+
 	// do thing
 }
 

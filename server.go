@@ -19,5 +19,5 @@ func main() {
 	mux.HandleFunc("/", Index)
 	mux.HandleFunc("/operations", slackApi.Operations)
 
-	log.Fatal(http.ListenAndServe(":" + port, mux))
+	log.Fatal(http.ListenAndServe(":"+port, mux))
 }

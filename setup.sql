@@ -24,3 +24,5 @@ create trigger update_last_modified
     on Requests
     for each row
     execute procedure update_last_modified();
+
+ALTER TABLE Requests ADD COLUMN response_url text;
