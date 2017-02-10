@@ -1,7 +1,4 @@
 {
-    "attachments": [
-        {
-            "text": ":x: michael.mosher rejected this request."
-        }
-    ]
+    "text": ":x: {{.Responder}} rejected this request.",
+    "replace_original": false
 }

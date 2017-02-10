@@ -111,20 +111,20 @@ func opsResponseReceiveResponse(w http.ResponseWriter, payload SlackPayload, ops
 	if payload.Actions[0].Value == "approved" {
 		opsRequest.Approved = true
 		templates.ExecuteTemplate(w, "ops_request_approved.json", opsRequest)
+		err := httpPost(opsRequest.Response_url, "request_approved.json", opsRequest)
 	} else {
 		opsRequest.Approved = false
 		templates.ExecuteTemplate(w, "ops_request_rejected.json", opsRequest)
+		err := httpPost(opsRequest.Response_url, "request_rejected.json", opsRequest)
 	}
-
-	err := UpdateRequest(db, opsRequest)
 
 	if err != nil {
 		response_url := payload.Response_url
 		reportError(err, response_url)
 	}
 
-	// update requester
-	err = httpPost(opsRequest.Response_url, "ops_request_submitted.json", opsRequest)
+	err = UpdateRequest(db, opsRequest)
+
 	if err != nil {
 		response_url := payload.Response_url
 		reportError(err, response_url)
