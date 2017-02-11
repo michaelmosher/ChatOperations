@@ -1,4 +1,4 @@
 {
-    "text": ":x: {{.Responder}} rejected this request.",
+    "text": ":x: {{.Responder}} rejected your request for {{.Action}} on {{.Server}}.",
     "replace_original": false
 }
