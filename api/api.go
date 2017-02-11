@@ -5,35 +5,28 @@ import (
 	"html/template"
 	"io"
 	"net/http"
-	"os"
-	"time"
 )
 
-var myToken = os.Getenv("VerificationToken")
-var webhookUrl = os.Getenv("WebhookUrl")
 var templates = template.Must(template.ParseGlob("templates/*.json"))
 
-var db, _ = NewDB(os.Getenv("DATABASE_URL"))
-
-var netClient = &http.Client{
-	Timeout: time.Second * 10,
+func (payload *SlackPayload) unmarshal(r *http.Request) {
+	json.Unmarshal([]byte(r.PostFormValue("payload")), &payload)
 }
 
-func authorized(r *http.Request, p SlackPayload) bool {
-	// request came from a Slack slash-command
-	if r.PostFormValue("token") == myToken {
-		return true
+func requestToken(r *http.Request, p SlackPayload) string {
+	switch {
+	case r.PostFormValue("token") != "":
+		// request came from a Slack slash-command
+		return r.PostFormValue("token")
+	case  p.Token != "":
+		// request came from a Slack interactive message
+		return p.Token
+	default:
+		return ""
 	}
-
-	// request came from a Slack interactive message
-	if p.Token == myToken {
-		return true
-	}
-
-	return false
 }
 
-func httpPost(url string, template_name string, opsRequest OperationsRequest) error {
+func (env *Env) httpPost(url string, template_name string, opsRequest OperationsRequest) error {
 	reader, writer := io.Pipe()
 
 	// writing without a reader will deadlock so write in a goroutine
@@ -42,7 +35,7 @@ func httpPost(url string, template_name string, opsRequest OperationsRequest) er
 		templates.ExecuteTemplate(writer, template_name, opsRequest)
 	}()
 
-	resp, err := netClient.Post(url, "application/json", reader)
+	resp, err := env.NetClient.Post(url, "application/json", reader)
 
 	if err != nil {
 		return err
@@ -52,7 +45,7 @@ func httpPost(url string, template_name string, opsRequest OperationsRequest) er
 	return nil
 }
 
-func reportError(err error, response_url string) {
+func (env *Env) reportError(err error, response_url string) {
 	// post error to response_url
 	reader, writer := io.Pipe()
 
@@ -62,12 +55,12 @@ func reportError(err error, response_url string) {
 		templates.ExecuteTemplate(writer, "something_went_wrong.json", error.Error)
 	}()
 
-	resp, _ := netClient.Post(response_url, "application/json", reader)
+	resp, _ := env.NetClient.Post(response_url, "application/json", reader)
 
 	defer resp.Body.Close()
 }
 
-func chooseActionReponse(w http.ResponseWriter, payload SlackPayload, opsRequest OperationsRequest) {
+func (env *Env) chooseActionReponse(w http.ResponseWriter, payload SlackPayload, opsRequest OperationsRequest) {
 	opsRequest.Action = payload.Actions[0].Value
 
 	if opsRequest.Action == "else" {
@@ -77,19 +70,19 @@ func chooseActionReponse(w http.ResponseWriter, payload SlackPayload, opsRequest
 
 	templates.ExecuteTemplate(w, "choose_server.json", opsRequest)
 
-	err := UpdateRequest(db, opsRequest)
+	err := env.Db.UpdateRequest(opsRequest)
 
 	if err != nil {
 		response_url := payload.Response_url
-		reportError(err, response_url)
+		env.reportError(err, response_url)
 	}
 }
 
-func chooseServerResponse(w http.ResponseWriter, payload SlackPayload, opsRequest OperationsRequest) {
+func (env *Env) chooseServerResponse(w http.ResponseWriter, payload SlackPayload, opsRequest OperationsRequest) {
 	opsRequest.Server = payload.Actions[0].Value
 	opsRequest.Response_url = payload.Response_url
 
-	err := httpPost(webhookUrl, "ops_request_submitted.json", opsRequest)
+	err := env.httpPost(env.WebhookUrl, "ops_request_submitted.json", opsRequest)
 
 	if err != nil {
 		templates.ExecuteTemplate(w, "request_not_submitted.json", err.Error)
@@ -98,46 +91,46 @@ func chooseServerResponse(w http.ResponseWriter, payload SlackPayload, opsReques
 
 	templates.ExecuteTemplate(w, "request_submitted.json", "")
 
-	err = UpdateRequest(db, opsRequest)
+	err = env.Db.UpdateRequest(opsRequest)
 
 	if err != nil {
-		reportError(err, opsRequest.Response_url)
+		env.reportError(err, opsRequest.Response_url)
 	}
 }
 
-func opsResponseReceiveResponse(w http.ResponseWriter, payload SlackPayload, opsRequest OperationsRequest) {
+func (env *Env) opsResponseReceiveResponse(w http.ResponseWriter, payload SlackPayload, opsRequest OperationsRequest) {
 	opsRequest.Responder = payload.User.Name
 
 	var err error
 	if payload.Actions[0].Value == "approved" {
 		opsRequest.Approved = true
 		templates.ExecuteTemplate(w, "ops_request_approved.json", opsRequest)
-		err = httpPost(opsRequest.Response_url, "request_approved.json", opsRequest)
+		err = env.httpPost(opsRequest.Response_url, "request_approved.json", opsRequest)
 	} else {
 		opsRequest.Approved = false
 		templates.ExecuteTemplate(w, "ops_request_rejected.json", opsRequest)
-		err = httpPost(opsRequest.Response_url, "request_rejected.json", opsRequest)
+		err = env.httpPost(opsRequest.Response_url, "request_rejected.json", opsRequest)
 	}
 
 	if err != nil {
 		response_url := payload.Response_url
-		reportError(err, response_url)
+		env.reportError(err, response_url)
 	}
 
-	err = UpdateRequest(db, opsRequest)
+	err = env.Db.UpdateRequest(opsRequest)
 
 	if err != nil {
 		response_url := payload.Response_url
-		reportError(err, response_url)
+		env.reportError(err, response_url)
 	}
 	// do thing
 }
 
-func Operations(w http.ResponseWriter, r *http.Request) {
+func (env *Env) Operations(w http.ResponseWriter, r *http.Request) {
 	var payload SlackPayload
-	json.Unmarshal([]byte(r.PostFormValue("payload")), &payload)
+	payload.unmarshal(r)
 
-	if !authorized(r, payload) {
+	if requestToken(r, payload) != env.VerificationToken {
 		http.Error(w, "Invalid Token", http.StatusForbidden)
 		return
 	}
@@ -149,18 +142,16 @@ func Operations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var OpsRequest OperationsRequest
-
 	switch payload.Actions[0].Name {
 	case "choose_action":
-		OpsRequest = NewRequest(db, payload.User.Name)
-		chooseActionReponse(w, payload, OpsRequest)
+		OpsRequest := env.Db.NewRequest(payload.User.Name)
+		env.chooseActionReponse(w, payload, OpsRequest)
 	case "choose_server":
-		OpsRequest = LoadRequest(db, payload.Callback_id)
-		chooseServerResponse(w, payload, OpsRequest)
+		OpsRequest := env.Db.LoadRequest(payload.Callback_id)
+		env.chooseServerResponse(w, payload, OpsRequest)
 	case "ops_request_submitted":
-		OpsRequest = LoadRequest(db, payload.Callback_id)
-		opsResponseReceiveResponse(w, payload, OpsRequest)
+		OpsRequest := env.Db.LoadRequest(payload.Callback_id)
+		env.opsResponseReceiveResponse(w, payload, OpsRequest)
 	default:
 		templates.ExecuteTemplate(w, "choose_action.json", "")
 	}

@@ -1,5 +1,16 @@
 package slackApi
 
+import (
+	"net/http"
+)
+
+type Env struct {
+	VerificationToken string
+	WebhookUrl string
+	Db	Datastore
+	NetClient *http.Client
+}
+
 type SlackAction struct {
 	Name  string
 	Value string

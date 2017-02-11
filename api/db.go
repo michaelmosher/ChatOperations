@@ -6,7 +6,17 @@ import (
 	"log"
 )
 
-func NewDB(dataSourceName string) (*sql.DB, error) {
+type Datastore interface {
+    NewRequest(requester string) OperationsRequest
+    LoadRequest(requestId string) OperationsRequest
+    UpdateRequest(opsRequest OperationsRequest) error
+}
+
+type DB struct {
+    *sql.DB
+}
+
+func NewDB(dataSourceName string) (*DB, error) {
 	db, err := sql.Open("postgres", dataSourceName)
 	if err != nil {
 		return nil, err
@@ -14,10 +24,10 @@ func NewDB(dataSourceName string) (*sql.DB, error) {
 	if err = db.Ping(); err != nil {
 		return nil, err
 	}
-	return db, nil
+	return &DB{db}, nil
 }
 
-func NewRequest(db *sql.DB, requester string) OperationsRequest {
+func (db *DB) NewRequest(requester string) OperationsRequest {
     var id int64
 
     err := db.QueryRow(
@@ -34,7 +44,7 @@ func NewRequest(db *sql.DB, requester string) OperationsRequest {
 	}
 }
 
-func LoadRequest(db *sql.DB, requestId string) OperationsRequest {
+func (db *DB) LoadRequest(requestId string) OperationsRequest {
 	var (
 		id           int64
 		requester    string
@@ -63,7 +73,7 @@ func LoadRequest(db *sql.DB, requestId string) OperationsRequest {
 	}
 }
 
-func UpdateRequest(db *sql.DB, opsRequest OperationsRequest) error {
+func (db *DB) UpdateRequest(opsRequest OperationsRequest) error {
     query := "update Requests set action = $2, server = $3, responder = $4, approved = $5, response_url = $6 where id = $1"
 	_, err := db.Exec(query, opsRequest.Id, opsRequest.Action, opsRequest.Server, opsRequest.Responder, opsRequest.Approved, opsRequest.Response_url)
 
