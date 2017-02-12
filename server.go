@@ -5,8 +5,9 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"slackApi/api"
 	"time"
+
+	"slackApi/api"
 )
 
 func Index(w http.ResponseWriter, r *http.Request) {
@@ -17,20 +18,17 @@ func main() {
 	port := os.Getenv("PORT")
 	mux := http.NewServeMux()
 
-	db, _ := slackApi.NewDB(os.Getenv("DATABASE_URL"))
-	netClient := &http.Client{
-		Timeout: time.Second * 10,
-	}
-
-	env := slackApi.Env{
+	cfg := slackApi.ApiConfig{
 		VerificationToken: os.Getenv("VerificationToken"),
 		WebhookUrl:        os.Getenv("WebhookUrl"),
-		Db:                db,
-		NetClient:         netClient,
+		DatabaseUrl:       os.Getenv("DATABASE_URL"),
+		NetClientTimeout:  time.Second * 10,
 	}
 
+	api := slackApi.New(cfg)
+
 	mux.HandleFunc("/", Index)
-	mux.HandleFunc("/operations", env.Operations)
+	mux.HandleFunc("/operations", api.Operations)
 
 	log.Fatal(http.ListenAndServe(":"+port, mux))
 }

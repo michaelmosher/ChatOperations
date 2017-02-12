@@ -1,9 +1,10 @@
 package slackApi
 
 import (
+	"log"
+
 	"database/sql"
 	_ "github.com/lib/pq"
-	"log"
 )
 
 type Datastore interface {

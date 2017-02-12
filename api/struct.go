@@ -1,14 +1,24 @@
 package slackApi
 
 import (
+	"html/template"
 	"net/http"
+	"time"
 )
 
-type Env struct {
+type ApiConfig struct {
 	VerificationToken string
 	WebhookUrl        string
-	Db                Datastore
+	DatabaseUrl       string
+	NetClientTimeout  time.Duration
+}
+
+type Api struct {
+	VerificationToken string
+	WebhookUrl        string
+	DB                *DB
 	NetClient         *http.Client
+	JsonTemplates     *template.Template
 }
 
 type SlackAction struct {
