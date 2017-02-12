@@ -18,7 +18,7 @@ func requestToken(r *http.Request, p SlackPayload) string {
 	case r.PostFormValue("token") != "":
 		// request came from a Slack slash-command
 		return r.PostFormValue("token")
-	case  p.Token != "":
+	case p.Token != "":
 		// request came from a Slack interactive message
 		return p.Token
 	default:

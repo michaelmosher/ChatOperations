@@ -6,9 +6,9 @@ import (
 
 type Env struct {
 	VerificationToken string
-	WebhookUrl string
-	Db	Datastore
-	NetClient *http.Client
+	WebhookUrl        string
+	Db                Datastore
+	NetClient         *http.Client
 }
 
 type SlackAction struct {

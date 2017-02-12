@@ -24,9 +24,9 @@ func main() {
 
 	env := slackApi.Env{
 		VerificationToken: os.Getenv("VerificationToken"),
-		WebhookUrl: os.Getenv("WebhookUrl"),
-		Db: db,
-		NetClient: netClient,
+		WebhookUrl:        os.Getenv("WebhookUrl"),
+		Db:                db,
+		NetClient:         netClient,
 	}
 
 	mux.HandleFunc("/", Index)
