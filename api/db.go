@@ -28,11 +28,12 @@ func NewDB(dataSourceName string) (*DB, error) {
 	return &DB{db}, nil
 }
 
-func (db *DB) NewRequest(requester string) OperationsRequest {
+func (db *DB) NewRequest(requester string, action string) OperationsRequest {
 	var id int64
 
 	err := db.QueryRow(
-		"insert into Requests (requester) values ($1) returning id", requester,
+		"insert into Requests (requester, action) values ($1, $2) returning id",
+		requester, action,
 	).Scan(&id)
 
 	if err != nil {
@@ -42,6 +43,7 @@ func (db *DB) NewRequest(requester string) OperationsRequest {
 	return OperationsRequest{
 		Id:        id,
 		Requester: requester,
+		Action:    action,
 	}
 }
 
@@ -52,12 +54,13 @@ func (db *DB) LoadRequest(requestId string) OperationsRequest {
 		action       sql.NullString
 		server       sql.NullString
 		responder    sql.NullString
-		approved     bool
+		approved     sql.NullBool
 		response_url sql.NullString
 	)
 
 	err := db.QueryRow(
-		"select id, requester, action, server, responder, approved, response_url from Requests where id = $1", requestId,
+		"select id, requester, action, server, responder, approved, response_url from Requests where id = $1",
+		requestId,
 	).Scan(&id, &requester, &action, &server, &responder, &approved, &response_url)
 	if err != nil {
 		log.Fatal(err)
@@ -69,7 +72,7 @@ func (db *DB) LoadRequest(requestId string) OperationsRequest {
 		Action:       action.String,
 		Server:       server.String,
 		Responder:    responder.String,
-		Approved:     approved,
+		Approved:     approved.Bool,
 		Response_url: response_url.String,
 	}
 }

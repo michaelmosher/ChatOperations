@@ -33,16 +33,12 @@ func (payload *SlackPayload) unmarshal(r *http.Request) {
 }
 
 func requestToken(r *http.Request, p SlackPayload) string {
-	switch {
-	case r.PostFormValue("token") != "":
+	if r.PostFormValue("token") != "" {
 		// request came from a Slack slash-command
 		return r.PostFormValue("token")
-	case p.Token != "":
-		// request came from a Slack interactive message
-		return p.Token
-	default:
-		return ""
 	}
+	// request came from a Slack interactive message
+	return p.Token
 }
 
 func (api *Api) httpPost(url string, template_name string, data interface{}) error {
@@ -79,25 +75,22 @@ func (api *Api) reportError(err error, response_url string) {
 	defer resp.Body.Close()
 }
 
-func (api *Api) chooseActionReponse(w http.ResponseWriter, payload SlackPayload, opsRequest OperationsRequest) {
-	opsRequest.Action = payload.Actions[0].Value
+func (api *Api) chooseActionResponse(w http.ResponseWriter, payload SlackPayload) {
+	action := payload.Actions[0].Value
 
-	if opsRequest.Action == "else" {
+	if action == "else" {
 		api.JsonTemplates.ExecuteTemplate(w, "coming_soon.json", "")
 		return
 	}
 
+	opsRequest := api.DB.NewRequest(payload.User.Name, action)
+
 	api.JsonTemplates.ExecuteTemplate(w, "choose_server.json", opsRequest)
-
-	err := api.DB.UpdateRequest(opsRequest)
-
-	if err != nil {
-		response_url := payload.Response_url
-		api.reportError(err, response_url)
-	}
 }
 
-func (api *Api) chooseServerResponse(w http.ResponseWriter, payload SlackPayload, opsRequest OperationsRequest) {
+func (api *Api) chooseServerResponse(w http.ResponseWriter, payload SlackPayload) {
+	opsRequest := api.DB.LoadRequest(payload.Callback_id)
+
 	opsRequest.Server = payload.Actions[0].Value
 	opsRequest.Response_url = payload.Response_url
 
@@ -117,7 +110,8 @@ func (api *Api) chooseServerResponse(w http.ResponseWriter, payload SlackPayload
 	}
 }
 
-func (api *Api) opsResponseReceiveResponse(w http.ResponseWriter, payload SlackPayload, opsRequest OperationsRequest) {
+func (api *Api) opsResponseReceiveResponse(w http.ResponseWriter, payload SlackPayload) {
+	opsRequest := api.DB.LoadRequest(payload.Callback_id)
 	opsRequest.Responder = payload.User.Name
 
 	var err error
@@ -145,9 +139,25 @@ func (api *Api) opsResponseReceiveResponse(w http.ResponseWriter, payload SlackP
 	// do thing
 }
 
+func (api *Api) routeRequest(w http.ResponseWriter, payload SlackPayload) {
+	switch payload.Actions[0].Name {
+	case "choose_action":
+		api.chooseActionResponse(w, payload)
+	case "choose_server":
+		api.chooseServerResponse(w, payload)
+	case "ops_request_submitted":
+		api.opsResponseReceiveResponse(w, payload)
+	default:
+		api.JsonTemplates.ExecuteTemplate(w, "choose_action.json", "")
+	}
+}
+
 func (api *Api) Operations(w http.ResponseWriter, r *http.Request) {
 	var payload SlackPayload
 	payload.unmarshal(r)
+
+	// make sure actions has at least one thing in it
+	payload.Actions = append(payload.Actions, SlackAction{})
 
 	if requestToken(r, payload) != api.VerificationToken {
 		http.Error(w, "Invalid Token", http.StatusForbidden)
@@ -156,22 +166,5 @@ func (api *Api) Operations(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	if len(payload.Actions) == 0 {
-		api.JsonTemplates.ExecuteTemplate(w, "choose_action.json", "")
-		return
-	}
-
-	switch payload.Actions[0].Name {
-	case "choose_action":
-		OpsRequest := api.DB.NewRequest(payload.User.Name)
-		api.chooseActionReponse(w, payload, OpsRequest)
-	case "choose_server":
-		OpsRequest := api.DB.LoadRequest(payload.Callback_id)
-		api.chooseServerResponse(w, payload, OpsRequest)
-	case "ops_request_submitted":
-		OpsRequest := api.DB.LoadRequest(payload.Callback_id)
-		api.opsResponseReceiveResponse(w, payload, OpsRequest)
-	default:
-		api.JsonTemplates.ExecuteTemplate(w, "choose_action.json", "")
-	}
+	api.routeRequest(w, payload)
 }
