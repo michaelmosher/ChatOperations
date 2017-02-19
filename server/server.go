@@ -32,56 +32,67 @@ func requestToken(r *http.Request, p SlackPayload) string {
 	return p.Token
 }
 
-func (server *Server) chooseActionResponse(w http.ResponseWriter, p SlackPayload) {
+func (server *Server) chooseAction(p SlackPayload) (string, interface{}) {
 	action := p.Actions[0].Value
 
 	if action == "else" {
-		server.jsonTemplates.ExecuteTemplate(w, "coming_soon.json", "")
-		return
+		return "coming_soon.json", ""
 	}
 
-	id, _ := server.state.SaveRequest(operations.Request{
+	id, err := server.state.SaveRequest(operations.Request{
 		Requester: p.User.Name,
 		Action:    action,
 	})
 
-	server.jsonTemplates.ExecuteTemplate(w, "choose_server.json", id)
+	if err != nil {
+		return "something_went_wrong", err.Error
+	}
+	return "choose_server.json", id
 }
 
-func (server *Server) chooseServerResponse(w http.ResponseWriter, p SlackPayload) {
-	opsRequest, _ := server.state.LoadRequest(p.Callback_id)
+func (server *Server) chooseServer(p SlackPayload) (string, interface{}) {
+	opsRequest, err := server.state.LoadRequest(p.Callback_id)
+
+	if err != nil {
+		return "something_went_wrong", err.Error
+	}
 
 	opsRequest.Server = p.Actions[0].Value
 	opsRequest.Response_url = p.Response_url
 
-	err := server.notifier.NotifyRequestSubmitted(opsRequest)
+	err = server.notifier.NotifyRequestSubmitted(opsRequest)
 
 	if err != nil {
-		server.jsonTemplates.ExecuteTemplate(w, "request_not_submitted.json", err.Error)
-		return
+		return "request_not_submitted.json", err.Error
 	}
 
-	server.jsonTemplates.ExecuteTemplate(w, "request_submitted.json", "")
+	go func() {
+		_, err = server.state.SaveRequest(opsRequest)
+		if err != nil {
+			server.notifier.NotifyError(opsRequest.Response_url, err)
+		}
+	}()
 
-	_, err = server.state.SaveRequest(opsRequest)
-
-	if err != nil {
-		server.notifier.NotifyError(opsRequest.Response_url, err)
-	}
+	return "request_submitted.json", ""
 }
 
-func (server *Server) opsResponseReceiveResponse(w http.ResponseWriter, p SlackPayload) {
-	opsRequest, _ := server.state.LoadRequest(p.Callback_id)
+func (server *Server) opsResponseReceive(p SlackPayload) (string, interface{}) {
+	opsRequest, err := server.state.LoadRequest(p.Callback_id)
+
+	if err != nil {
+		return "something_went_wrong", err.Error
+	}
+
 	opsRequest.Responder = p.User.Name
 
-	var err error
+	var templateName string
 	if p.Actions[0].Value == "approved" {
 		opsRequest.Approved = true
-		server.jsonTemplates.ExecuteTemplate(w, "ops_request_approved.json", opsRequest)
+		templateName = "ops_request_approved.json"
 		err = server.notifier.NotifyRequestApproved(opsRequest)
 	} else {
 		opsRequest.Approved = false
-		server.jsonTemplates.ExecuteTemplate(w, "ops_request_rejected.json", opsRequest)
+		templateName = "ops_request_rejected.json"
 		err = server.notifier.NotifyRequestRejected(opsRequest)
 	}
 
@@ -90,26 +101,35 @@ func (server *Server) opsResponseReceiveResponse(w http.ResponseWriter, p SlackP
 		server.notifier.NotifyError(response_url, err)
 	}
 
-	_, err = server.state.SaveRequest(opsRequest)
+	go func() {
+		_, err = server.state.SaveRequest(opsRequest)
+		if err != nil {
+			server.notifier.NotifyError(p.Response_url, err)
+		}
+	}()
 
-	if err != nil {
-		response_url := p.Response_url
-		server.notifier.NotifyError(response_url, err)
-	}
 	// do thing
+
+	return templateName, opsRequest
 }
 
 func (server *Server) routeRequest(w http.ResponseWriter, p SlackPayload) {
+	var responseTemplate string
+	var data interface{}
+
 	switch p.Actions[0].Name {
 	case "choose_action":
-		server.chooseActionResponse(w, p)
+		responseTemplate, data = server.chooseAction(p)
 	case "choose_server":
-		server.chooseServerResponse(w, p)
+		responseTemplate, data = server.chooseServer(p)
 	case "ops_request_submitted":
-		server.opsResponseReceiveResponse(w, p)
+		responseTemplate, data = server.opsResponseReceive(p)
 	default:
-		server.jsonTemplates.ExecuteTemplate(w, "choose_action.json", "")
+		responseTemplate = "choose_action.json"
+		data = ""
 	}
+
+	server.jsonTemplates.ExecuteTemplate(w, responseTemplate, data)
 }
 
 func (server *Server) Operations(w http.ResponseWriter, r *http.Request) {
