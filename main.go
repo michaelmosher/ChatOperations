@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"slackApi/api"
+	"chatoperations/api"
 )
 
 func Index(w http.ResponseWriter, r *http.Request) {
