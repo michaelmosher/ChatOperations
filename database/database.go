@@ -6,13 +6,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type Datastore interface {
-	newRequest(opReq OperationsRequest) (id int64, err error)
-	updateRequest(opsRequest OperationsRequest) (id int64, err error)
-	SaveRequest(opsRequest OperationsRequest) (id int64, err error)
-	LoadRequest(requestId string) (OperationsRequest, error)
-}
-
 type DB struct {
 	*sql.DB
 }
