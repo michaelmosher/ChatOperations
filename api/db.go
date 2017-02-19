@@ -1,4 +1,4 @@
-package slackApi
+package chatoperations
 
 import (
 	"log"

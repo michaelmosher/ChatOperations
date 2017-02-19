@@ -1,1 +1,1 @@
-web: slackApi
+web: chatoperations
