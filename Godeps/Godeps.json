@@ -1,5 +1,5 @@
 {
-	"ImportPath": "slackApi",
+	"ImportPath": "chatoperations",
 	"GoVersion": "go1.6",
 	"GodepVersion": "v78",
 	"Deps": [
@@ -12,22 +12,6 @@
 			"ImportPath": "github.com/lib/pq/oid",
 			"Comment": "go1.0-cutoff-147-g0477eb8",
 			"Rev": "0477eb88c5ca4009cb281f13c90633375b6a9987"
-		},
-		{
-			"ImportPath": "golang.org/x/crypto/curve25519",
-			"Rev": "453249f01cfeb54c3d549ddb75ff152ca243f9d8"
-		},
-		{
-			"ImportPath": "golang.org/x/crypto/ed25519",
-			"Rev": "453249f01cfeb54c3d549ddb75ff152ca243f9d8"
-		},
-		{
-			"ImportPath": "golang.org/x/crypto/ed25519/internal/edwards25519",
-			"Rev": "453249f01cfeb54c3d549ddb75ff152ca243f9d8"
-		},
-		{
-			"ImportPath": "golang.org/x/crypto/ssh",
-			"Rev": "453249f01cfeb54c3d549ddb75ff152ca243f9d8"
 		}
 	]
 }
