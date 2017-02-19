@@ -1,20 +1,21 @@
 package slack_test
 
 import (
-    "encoding/json"
+	"encoding/json"
 	"errors"
 	"fmt"
-    "io/ioutil"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"chatoperations/operations"
 	"chatoperations/slack"
 )
 
 type test_struct struct {
-	Text	string
+	Text string
 }
 
 var slackStub = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -25,7 +26,7 @@ var slackStub = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, 
 	}
 
 	var t test_struct
-    err = json.Unmarshal(body, &t)
+	err = json.Unmarshal(body, &t)
 
 	if err != nil {
 		log.Fatal(err)
@@ -35,15 +36,16 @@ var slackStub = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, 
 }))
 
 var slackTest = slack.New(slack.Config{
-	WebhookUrl: slackStub.URL,
+	TemplatesGlob: "templates/*.json",
+	WebhookUrl:    slackStub.URL,
 })
 
-var myTestRequest = slack.OperationsRequest{
-	Id: 1,
-	Requester: "tester",
-	Action: "test",
-	Server: "test-server",
-	Responder: "sponder",
+var myTestRequest = operations.Request{
+	Id:           1,
+	Requester:    "tester",
+	Action:       "test",
+	Server:       "test-server",
+	Responder:    "sponder",
 	Response_url: slackStub.URL,
 }
 

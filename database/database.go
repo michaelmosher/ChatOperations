@@ -4,20 +4,12 @@ import (
 	"database/sql"
 
 	_ "github.com/lib/pq"
+
+	"chatoperations/operations"
 )
 
 type DB struct {
 	*sql.DB
-}
-
-type OperationsRequest struct {
-	Id           int64
-	Requester    string
-	Server       string
-	Action       string
-	Responder    string
-	Approved     bool
-	Response_url string
 }
 
 func New(dataSourceName string) (*DB, error) {
@@ -31,33 +23,33 @@ func New(dataSourceName string) (*DB, error) {
 	return &DB{db}, nil
 }
 
-func (db *DB) newRequest(opsRequest OperationsRequest) (id int64, err error) {
+func (db *DB) newRequest(o operations.Request) (id int64, err error) {
 	err = db.QueryRow(
 		"insert into Requests (requester, action) values ($1, $2) returning id",
-		opsRequest.Requester, opsRequest.Action,
+		o.Requester, o.Action,
 	).Scan(&id)
 
 	return id, err
 }
 
-func (db *DB) updateRequest(opsRequest OperationsRequest) (id int64, err error) {
+func (db *DB) updateRequest(o operations.Request) (id int64, err error) {
 	err = db.QueryRow(
 		"update Requests set action = $2, server = $3, responder = $4, approved = $5, response_url = $6 where id = $1 returning id",
-		opsRequest.Id, opsRequest.Action, opsRequest.Server, opsRequest.Responder, opsRequest.Approved, opsRequest.Response_url,
+		o.Id, o.Action, o.Server, o.Responder, o.Approved, o.Response_url,
 	).Scan(&id)
 
 	return id, err
 }
 
-func (db *DB) SaveRequest(opsRequest OperationsRequest) (id int64, err error) {
-	if opsRequest.Id == 0 {
-		return db.newRequest(opsRequest)
+func (db *DB) SaveRequest(o operations.Request) (id int64, err error) {
+	if o.Id == 0 {
+		return db.newRequest(o)
 	} else {
-		return db.updateRequest(opsRequest)
+		return db.updateRequest(o)
 	}
 }
 
-func (db *DB) LoadRequest(requestId string) (OperationsRequest, error) {
+func (db *DB) LoadRequest(requestId string) (operations.Request, error) {
 	var (
 		id           int64
 		requester    string
@@ -73,7 +65,7 @@ func (db *DB) LoadRequest(requestId string) (OperationsRequest, error) {
 		requestId,
 	).Scan(&id, &requester, &action, &server, &responder, &approved, &response_url)
 
-	return OperationsRequest{
+	return operations.Request{
 		Id:           id,
 		Requester:    requester,
 		Action:       action.String,

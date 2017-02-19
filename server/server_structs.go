@@ -2,27 +2,34 @@ package server
 
 import (
 	"html/template"
-	"net/http"
-	"time"
+
+	"chatoperations/operations"
 )
 
 type State interface {
-	SaveRequest(opsRequest OperationsRequest) (id int64, err error)
-	LoadRequest(requestId string) (OperationsRequest, error)
+	SaveRequest(o operations.Request) (id int64, err error)
+	LoadRequest(requestId string) (operations.Request, error)
 }
 
 type Notifier interface {
-	NotifyRequestSubmitted(opsRequest OperationsRequest) error
-	NotifyRequestApproved(opsRequest OperationsRequest) error
-	NotifyRequestRejected(opsRequest OperationsRequest) error
+	NotifyRequestSubmitted(o operations.Request) error
+	NotifyRequestApproved(o operations.Request) error
+	NotifyRequestRejected(o operations.Request) error
 	NotifyError(url string, originalErr error)
+}
+
+type Config struct {
+	VerificationToken string
+	State             State
+	Notifier          Notifier
+	TemplatesGlob     string
 }
 
 type Server struct {
 	verificationToken string
-	state             *State
-	notifier          *Notifier
-	JsonTemplates     *template.Template
+	state             State
+	notifier          Notifier
+	jsonTemplates     *template.Template
 }
 
 type SlackAction struct {
@@ -53,15 +60,5 @@ type SlackPayload struct {
 	User         SlackUser
 	Callback_id  string
 	Message_ts   string
-	Response_url string
-}
-
-type OperationsRequest struct {
-	Id           int64
-	Requester    string
-	Server       string
-	Action       string
-	Responder    string
-	Approved     bool
 	Response_url string
 }

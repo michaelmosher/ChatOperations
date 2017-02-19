@@ -5,12 +5,13 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
-	"chatoperations/api"
+	"chatoperations/database"
+	"chatoperations/server"
+	"chatoperations/slack"
 )
 
-func Index(w http.ResponseWriter, r *http.Request) {
+func index(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "Welcome!\n")
 }
 
@@ -18,16 +19,24 @@ func main() {
 	port := os.Getenv("PORT")
 	mux := http.NewServeMux()
 
-	cfg := slackApi.ApiConfig{
-		VerificationToken: os.Getenv("VerificationToken"),
-		WebhookUrl:        os.Getenv("WebhookUrl"),
-		DatabaseUrl:       os.Getenv("DATABASE_URL"),
-		NetClientTimeout:  time.Second * 10,
+	state, err := database.New(os.Getenv("DATABASE_URL"))
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	api := slackApi.New(cfg)
+	notifier := slack.New(slack.Config{
+		TemplatesGlob: "slack/templates/*.json",
+		WebhookUrl:    os.Getenv("WebhookUrl"),
+	})
 
-	mux.HandleFunc("/", Index)
+	api := server.New(server.Config{
+		TemplatesGlob:     "server/templates/*.json",
+		VerificationToken: os.Getenv("VerificationToken"),
+		State:             state,
+		Notifier:          notifier,
+	})
+
+	mux.HandleFunc("/", index)
 	mux.HandleFunc("/operations", api.Operations)
 
 	log.Fatal(http.ListenAndServe(":"+port, mux))

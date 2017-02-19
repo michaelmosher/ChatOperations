@@ -4,15 +4,17 @@ import (
 	"encoding/json"
 	"html/template"
 	"net/http"
+
+	"chatoperations/operations"
 )
 
-func New(token string, s *State, n *Notifier) Server {
-	templates := template.Must(template.ParseGlob("templates/*.json"))
+func New(cfg Config) Server {
+	templates := template.Must(template.ParseGlob(cfg.TemplatesGlob))
 
 	return Server{
-		verificationToken: token,
-		state:             s,
-		notifier:          n,
+		verificationToken: cfg.VerificationToken,
+		state:             cfg.State,
+		notifier:          cfg.Notifier,
 		jsonTemplates:     templates,
 	}
 }
@@ -38,16 +40,16 @@ func (server *Server) chooseActionResponse(w http.ResponseWriter, p SlackPayload
 		return
 	}
 
-	id, _ := server.state.SaveRequest(OperationsRequest{
-		Request: payload.User.Name,
-		Action: action
+	id, _ := server.state.SaveRequest(operations.Request{
+		Requester: p.User.Name,
+		Action:    action,
 	})
 
 	server.jsonTemplates.ExecuteTemplate(w, "choose_server.json", id)
 }
 
 func (server *Server) chooseServerResponse(w http.ResponseWriter, p SlackPayload) {
-	opsRequest := server.state.LoadRequest(p.Callback_id)
+	opsRequest, _ := server.state.LoadRequest(p.Callback_id)
 
 	opsRequest.Server = p.Actions[0].Value
 	opsRequest.Response_url = p.Response_url
@@ -61,15 +63,15 @@ func (server *Server) chooseServerResponse(w http.ResponseWriter, p SlackPayload
 
 	server.jsonTemplates.ExecuteTemplate(w, "request_submitted.json", "")
 
-	err = server.state.UpdateRequest(opsRequest)
+	_, err = server.state.SaveRequest(opsRequest)
 
 	if err != nil {
-		server.notifier.reportError(opsRequest.Response_url, err.Error)
+		server.notifier.NotifyError(opsRequest.Response_url, err)
 	}
 }
 
 func (server *Server) opsResponseReceiveResponse(w http.ResponseWriter, p SlackPayload) {
-	opsRequest := server.state.LoadRequest(p.Callback_id)
+	opsRequest, _ := server.state.LoadRequest(p.Callback_id)
 	opsRequest.Responder = p.User.Name
 
 	var err error
@@ -85,14 +87,14 @@ func (server *Server) opsResponseReceiveResponse(w http.ResponseWriter, p SlackP
 
 	if err != nil {
 		response_url := p.Response_url
-		server.notifier.reportError(response_url, err.Error)
+		server.notifier.NotifyError(response_url, err)
 	}
 
-	err = server.state.UpdateRequest(opsRequest)
+	_, err = server.state.SaveRequest(opsRequest)
 
 	if err != nil {
 		response_url := p.Response_url
-		server.notifier.reportError(response_url, err.Error)
+		server.notifier.NotifyError(response_url, err)
 	}
 	// do thing
 }
