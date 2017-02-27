@@ -2,10 +2,7 @@ package database
 
 import (
 	"database/sql"
-
 	_ "github.com/lib/pq"
-
-	"chatoperations/operations"
 )
 
 type DB struct {
@@ -21,6 +18,18 @@ func New(dataSourceName string) (*DB, error) {
 		return nil, err
 	}
 	return &DB{db}, nil
+}
+
+func (db *DB) NewActionRepo() *ActionRepo {
+	return &ActionRepo(db)
+}
+
+func (db *DB) NewServerRepo() *ServerRepo {
+	return &ServerRepo(db)
+}
+
+func (db *DB) NewRequestRepo() *RequestRepo {
+	return &RequestRepo(db)
 }
 
 func (db *DB) newRequest(o operations.Request) (id int64, err error) {
