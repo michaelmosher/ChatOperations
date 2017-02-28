@@ -1,22 +1,20 @@
-package server
+package web
 
 import (
 	"encoding/json"
 	"html/template"
 	"net/http"
+	"strconv"
 
+	"chatoperations/app"
 	"chatoperations/operations"
 )
 
-func New(cfg Config) Server {
-	templates := template.Must(template.ParseGlob(cfg.TemplatesGlob))
+var templates = template.Must(template.ParseGlob("templates/*.json"))
 
-	return Server{
-		verificationToken: cfg.VerificationToken,
-		state:             cfg.State,
-		notifier:          cfg.Notifier,
-		jsonTemplates:     templates,
-	}
+type Server struct {
+	VerificationToken string
+	Operations        app.OperationsInteractor
 }
 
 func (p *SlackPayload) unmarshal(r *http.Request) {
@@ -33,16 +31,16 @@ func requestToken(r *http.Request, p SlackPayload) string {
 }
 
 func (server *Server) chooseAction(p SlackPayload) (string, interface{}) {
-	action := p.Actions[0].Value
+	actionIdString := p.Actions[0].Value
 
-	if action == "else" {
+	if actionIdString == "else" {
 		return "coming_soon.json", ""
 	}
 
-	id, err := server.state.SaveRequest(operations.Request{
+	actionId := strconv.Atoi(actionIdString)
+	opsRequest, err := server.Operations.SetRequestAction(operations.Request{
 		Requester: p.User.Name,
-		Action:    action,
-	})
+		Response_url: p.Response_url}, actionId)
 
 	if err != nil {
 		return "something_went_wrong", err.Error
@@ -51,64 +49,45 @@ func (server *Server) chooseAction(p SlackPayload) (string, interface{}) {
 }
 
 func (server *Server) chooseServer(p SlackPayload) (string, interface{}) {
-	opsRequest, err := server.state.LoadRequest(p.Callback_id)
+	requestId := strconv.Atoi(p.Callback_id)
+	serverId := strconv.Atoi(p.Actions[0].Value)
+
+	opsRequest, err := server.Operations.SetRequestServer(requestId, serverId)
 
 	if err != nil {
 		return "something_went_wrong", err.Error
 	}
+	return "request_submitted.json", ""
+}
 
-	opsRequest.Server = p.Actions[0].Value
-	opsRequest.Response_url = p.Response_url
+func (server *Server) submitRequest(p SlackPayload) (string, interface{}) {
+	requestId := strconv.Atoi(p.Callback_id)
 
-	err = server.notifier.NotifyRequestSubmitted(opsRequest)
+	err = server.Operations.SubmitRequest(requestId)
 
 	if err != nil {
 		return "request_not_submitted.json", err.Error
 	}
 
-	go func() {
-		_, err = server.state.SaveRequest(opsRequest)
-		if err != nil {
-			server.notifier.NotifyError(opsRequest.Response_url, err)
-		}
-	}()
-
 	return "request_submitted.json", ""
 }
 
 func (server *Server) opsResponseReceive(p SlackPayload) (string, interface{}) {
-	opsRequest, err := server.state.LoadRequest(p.Callback_id)
+	requestId := strconv.Atoi(p.Callback_id)
+	responder = p.User.Name
 
-	if err != nil {
-		return "something_went_wrong", err.Error
-	}
+	var (
+		templateName string
+		opsRequest   operations.Request
+	)
 
-	opsRequest.Responder = p.User.Name
-
-	var templateName string
 	if p.Actions[0].Value == "approved" {
-		opsRequest.Approved = true
 		templateName = "ops_request_approved.json"
-		err = server.notifier.NotifyRequestApproved(opsRequest)
+		opsRequest, _ = server.Operations.ApproveRequest(requestId, responder)
 	} else {
-		opsRequest.Approved = false
 		templateName = "ops_request_rejected.json"
-		err = server.notifier.NotifyRequestRejected(opsRequest)
+		opsRequest, _ = server.Operations.RejectRequest(requestId, responder)
 	}
-
-	if err != nil {
-		response_url := p.Response_url
-		server.notifier.NotifyError(response_url, err)
-	}
-
-	go func() {
-		_, err = server.state.SaveRequest(opsRequest)
-		if err != nil {
-			server.notifier.NotifyError(p.Response_url, err)
-		}
-	}()
-
-	// do thing
 
 	return templateName, opsRequest
 }
@@ -122,6 +101,8 @@ func (server *Server) routeRequest(w http.ResponseWriter, p SlackPayload) {
 		responseTemplate, data = server.chooseAction(p)
 	case "choose_server":
 		responseTemplate, data = server.chooseServer(p)
+	case "submit_request":
+		responseTemplate, data = server.submitRequest(p)
 	case "ops_request_submitted":
 		responseTemplate, data = server.opsResponseReceive(p)
 	default:

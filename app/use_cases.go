@@ -18,27 +18,34 @@ type OperationsInteractor struct {
 }
 
 func (ops *OperationsInteractor) SetRequestAction(o operations.Request, actionId int) (operations.Request, error) {
-	action := ops.actionStore.FindById(actionId)
+	action, err := ops.actionStore.FindById(actionId)
+
 	o.Action = action
 
 	err := ops.requestStore.Store(o)
 	return o, err
 }
 
-func (ops *OperationsInteractor) SetRequestServer(o operations.Request, serverId int) (operations.Request, error) {
-	server := ops.serverStore.FindById(serverId)
+func (ops *OperationsInteractor) SetRequestServer(requestId int, serverId int) (operations.Request, error) {
+	o, err := ops.requestStore.FindById(requestId)
+	server, err := ops.serverStore.FindById(serverId)
+
 	o.Server = server
 
 	err := ops.requestStore.Store(o)
 	return o, err
 }
 
-func (ops *OperationsInteractor) SubmitRequest(o operations.Request) error {
+func (ops *OperationsInteractor) SubmitRequest(requestId int) error {
+	o, err := ops.requestStore.FindById(requestId)
+
 	return ops.notifier.NotifyRequestSubmitted(o)
 }
 
-func (ops *OperationsInteractor) ApproveRequest(o operations.Request) error {
+func (ops *OperationsInteractor) ApproveRequest(requestId int, responder string) error {
+	o, err := ops.requestStore.FindById(requestId)
 	o.Approved = true
+	o.Responder = responder
 
 	go ops.notifier.NotifyRequestSubmitted(o)
 	// go exec request
@@ -47,8 +54,10 @@ func (ops *OperationsInteractor) ApproveRequest(o operations.Request) error {
 	return o, err
 }
 
-func (ops *OperationsInteractor) RejectRequest(o operations.Request) error {
+func (ops *OperationsInteractor) RejectRequest(requestId int, responder string) error {
+	o, err := ops.requestStore.FindById(requestId)
 	o.Approved = false
+	o.Responder = responder
 
 	go ops.notifier.NotifyRequestRejected(o)
 
