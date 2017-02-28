@@ -1,0 +1,27 @@
+{
+    "text": "Please review your request before submitting it to Operations.",
+    "attachments": [
+        {
+            "text":"{{.Requester}} has requested {{.Action}} on {{.Server}}.",
+            "fallback": "Please use an official Slack client for Ops help",
+            "callback_id": "{{.Id}}",
+            "attachment_type": "default",
+            "actions": [
+                {
+                    "name": "submit_request",
+                    "text": "Submit",
+                   "style": "primary",
+                    "type": "button",
+                    "value": "submit"
+                },
+                {
+                    "name": "submit_request",
+                    "text": "Cancel",
+                   "style": "danger",
+                    "type": "button",
+                    "value": "cancel"
+                }
+            ]
+        }
+    ]
+}

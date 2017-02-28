@@ -57,16 +57,20 @@ func (server *Server) chooseServer(p SlackPayload) (string, interface{}) {
 	if err != nil {
 		return "something_went_wrong", err.Error
 	}
-	return "request_submitted.json", ""
+	return "confirm_request.json", opsRequest
 }
 
 func (server *Server) submitRequest(p SlackPayload) (string, interface{}) {
 	requestId := strconv.Atoi(p.Callback_id)
 
+	if p.Actions[0].Value == "cancel" {
+		return "request_not_submitted", ""
+	}
+
 	err = server.Operations.SubmitRequest(requestId)
 
 	if err != nil {
-		return "request_not_submitted.json", err.Error
+		return "something_went_wrong.json", err.Error
 	}
 
 	return "request_submitted.json", ""
