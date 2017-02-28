@@ -47,7 +47,7 @@ func (repo *ActionRepo) FindAll() ([]operations.Action, error) {
 
 	rows, err := db.Query("select id, title, command from Actions")
 	if err != nil {
-	        log.Fatal(err)
+        log.Fatal(err)
 	}
 	defer rows.Close()
 

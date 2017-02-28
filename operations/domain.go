@@ -11,7 +11,7 @@ type ServerRepository interface {
 }
 
 type RequestRepository interface {
-	Store(req Request) error
+	Store(o Request) (int64, error)
 	FindById(id int) (Request, error)
 }
 
@@ -22,9 +22,10 @@ type Action struct {
 }
 
 type Server struct {
-	Id	    int64
-	Title   string
-	Address string
+	Id	        int64
+	Title       string
+	Address     string
+	Environment string
 }
 
 type Request struct {
