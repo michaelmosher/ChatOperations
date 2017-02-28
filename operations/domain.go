@@ -22,7 +22,7 @@ type Action struct {
 }
 
 type Server struct {
-	Id	        int64
+	Id          int64
 	Title       string
 	Address     string
 	Environment string

@@ -2,7 +2,6 @@ package database
 
 import (
 	"database/sql"
-	"log"
 
 	_ "github.com/lib/pq"
 
@@ -10,11 +9,11 @@ import (
 )
 
 type RequestRepo struct {
-	*sql.DB
+	*DB
 }
 
 func (repo *RequestRepo) new(o operations.Request) (id int64, err error) {
-	err = repo.db.QueryRow(
+	err = repo.QueryRow(
 		"insert into Requests (requester, actionId) values ($1, $2) returning id",
 		o.Requester, o.Action.Id,
 	).Scan(&id)
@@ -23,7 +22,7 @@ func (repo *RequestRepo) new(o operations.Request) (id int64, err error) {
 }
 
 func (repo *RequestRepo) update(o operations.Request) (id int64, err error) {
-	err = repo.db.QueryRow(
+	err = repo.QueryRow(
 		"update Requests set actionId = $2, serverId = $3, responder = $4, approved = $5, response_url = $6 where id = $1 returning id",
 		o.Id, o.Action.Id, o.Server.Id, o.Responder, o.Approved, o.Response_url,
 	).Scan(&id)
@@ -39,7 +38,7 @@ func (repo *RequestRepo) Store(o operations.Request) (int64, error) {
 	return repo.update(o)
 }
 
-func (repo *RequestRepo) FindById(id int) (operations.Request, error) {
+func (repo *RequestRepo) FindById(requestId int) (operations.Request, error) {
 	var (
 		id           int64
 		requester    string
@@ -50,7 +49,7 @@ func (repo *RequestRepo) FindById(id int) (operations.Request, error) {
 		response_url sql.NullString
 	)
 
-	err := db.QueryRow(
+	err := repo.QueryRow(
 		"select id, requester, actionId, serverId, responder, approved, response_url from Requests where id = $1",
 		requestId,
 	).Scan(&id, &requester, &actionId, &serverId, &responder, &approved, &response_url)
@@ -58,8 +57,8 @@ func (repo *RequestRepo) FindById(id int) (operations.Request, error) {
 	return operations.Request{
 		Id:           id,
 		Requester:    requester,
-		Action:       operations.Action{Id: actionId.Value},
-		Server:       operations.Server{Id: serverId.Value},
+		Action:       operations.Action{Id: actionId.Int64},
+		Server:       operations.Server{Id: serverId.Int64},
 		Responder:    responder.String,
 		Approved:     approved.Bool,
 		Response_url: response_url.String,

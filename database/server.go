@@ -1,7 +1,6 @@
 package database
 
 import (
-	"database/sql"
 	"log"
 
 	_ "github.com/lib/pq"
@@ -10,21 +9,10 @@ import (
 )
 
 type ServerRepo struct {
-	*sql.DB
+	*DB
 }
 
-func NewServerepo(postgresUrl string) (*ServerRepo, error) {
-	db, err := sql.Open("postgres", postgresUrl)
-	if err != nil {
-		return nil, err
-	}
-	if err = db.Ping(); err != nil {
-		return nil, err
-	}
-	return &ServerRepo{db}, nil
-}
-
-func (repo *ServerRepo) FindById(id string) (operations.Server, error) {
+func (repo *ServerRepo) FindById(serviceId int) (operations.Server, error) {
 	var (
 		id          int64
 		title       string
@@ -33,7 +21,7 @@ func (repo *ServerRepo) FindById(id string) (operations.Server, error) {
 	)
 
 	err := repo.QueryRow(
-		"select id, title, address, environment from Servers where id = $1", id,
+		"select id, title, address, environment from Servers where id = $1", serviceId,
 	).Scan(&id, &title, &address, &environment)
 
 	return operations.Server{
@@ -45,11 +33,11 @@ func (repo *ServerRepo) FindById(id string) (operations.Server, error) {
 }
 
 func (repo *ServerRepo) FindAll() ([]operations.Server, error) {
-	var results = []operations.Server
+	var results = []operations.Server{}
 
-	rows, err := db.Query("select id, title, address from Servers")
+	rows, err := repo.Query("select id, title, address from Servers")
 	if err != nil {
-        log.Fatal(err)
+		log.Fatal(err)
 	}
 	defer rows.Close()
 
@@ -61,17 +49,17 @@ func (repo *ServerRepo) FindAll() ([]operations.Server, error) {
 		)
 
 		if err := rows.Scan(&id, &title, &address); err != nil {
-	        log.Fatal(err)
-        }
+			log.Fatal(err)
+		}
 
-		results = append(results, operations.Server{
-			Id:      id,
+		newServer := operations.Server{Id: id,
 			Title:   title,
-			Address, address,
-		})
+			Address: address}
+
+		results = append(results, newServer)
 	}
 	if err := rows.Err(); err != nil {
-	        log.Fatal(err)
+		log.Fatal(err)
 	}
 
 	return results, err

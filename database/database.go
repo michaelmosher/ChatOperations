@@ -21,13 +21,13 @@ func New(dataSourceName string) (*DB, error) {
 }
 
 func (db *DB) NewActionRepo() *ActionRepo {
-	return &ActionRepo(db)
+	return &ActionRepo{db}
 }
 
 func (db *DB) NewServerRepo() *ServerRepo {
-	return &ServerRepo(db)
+	return &ServerRepo{db}
 }
 
 func (db *DB) NewRequestRepo() *RequestRepo {
-	return &RequestRepo(db)
+	return &RequestRepo{db}
 }

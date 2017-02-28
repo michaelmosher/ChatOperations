@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"chatoperations/app"
+	"chatoperations/application"
 	"chatoperations/operations"
 )
 
@@ -14,7 +14,7 @@ var templates = template.Must(template.ParseGlob("templates/*.json"))
 
 type Server struct {
 	VerificationToken string
-	Operations        app.OperationsInteractor
+	OpsInteractor     application.OperationsInteractor
 }
 
 func (p *SlackPayload) unmarshal(r *http.Request) {
@@ -37,22 +37,23 @@ func (server *Server) chooseAction(p SlackPayload) (string, interface{}) {
 		return "coming_soon.json", ""
 	}
 
-	actionId := strconv.Atoi(actionIdString)
-	opsRequest, err := server.Operations.SetRequestAction(operations.Request{
-		Requester: p.User.Name,
-		Response_url: p.Response_url}, actionId)
+	actionId, _ := strconv.Atoi(actionIdString)
+	opsRequest, err := server.OpsInteractor.SetRequestAction(operations.Request{
+		Requester:    p.User.Name,
+		Response_url: p.Response_url,
+	}, actionId)
 
 	if err != nil {
 		return "something_went_wrong", err.Error
 	}
-	return "choose_server.json", id
+	return "choose_server.json", opsRequest.Id
 }
 
 func (server *Server) chooseServer(p SlackPayload) (string, interface{}) {
-	requestId := strconv.Atoi(p.Callback_id)
-	serverId := strconv.Atoi(p.Actions[0].Value)
+	requestId, _ := strconv.Atoi(p.Callback_id)
+	serverId, _ := strconv.Atoi(p.Actions[0].Value)
 
-	opsRequest, err := server.Operations.SetRequestServer(requestId, serverId)
+	opsRequest, err := server.OpsInteractor.SetRequestServer(requestId, serverId)
 
 	if err != nil {
 		return "something_went_wrong", err.Error
@@ -61,13 +62,13 @@ func (server *Server) chooseServer(p SlackPayload) (string, interface{}) {
 }
 
 func (server *Server) submitRequest(p SlackPayload) (string, interface{}) {
-	requestId := strconv.Atoi(p.Callback_id)
+	requestId, _ := strconv.Atoi(p.Callback_id)
 
 	if p.Actions[0].Value == "cancel" {
 		return "request_not_submitted", ""
 	}
 
-	err = server.Operations.SubmitRequest(requestId)
+	err := server.OpsInteractor.SubmitRequest(requestId)
 
 	if err != nil {
 		return "something_went_wrong.json", err.Error
@@ -77,8 +78,8 @@ func (server *Server) submitRequest(p SlackPayload) (string, interface{}) {
 }
 
 func (server *Server) opsResponseReceive(p SlackPayload) (string, interface{}) {
-	requestId := strconv.Atoi(p.Callback_id)
-	responder = p.User.Name
+	requestId, _ := strconv.Atoi(p.Callback_id)
+	responder := p.User.Name
 
 	var (
 		templateName string
@@ -87,10 +88,10 @@ func (server *Server) opsResponseReceive(p SlackPayload) (string, interface{}) {
 
 	if p.Actions[0].Value == "approved" {
 		templateName = "ops_request_approved.json"
-		opsRequest, _ = server.Operations.ApproveRequest(requestId, responder)
+		opsRequest, _ = server.OpsInteractor.ApproveRequest(requestId, responder)
 	} else {
 		templateName = "ops_request_rejected.json"
-		opsRequest, _ = server.Operations.RejectRequest(requestId, responder)
+		opsRequest, _ = server.OpsInteractor.RejectRequest(requestId, responder)
 	}
 
 	return templateName, opsRequest
@@ -114,7 +115,7 @@ func (server *Server) routeRequest(w http.ResponseWriter, p SlackPayload) {
 		data = ""
 	}
 
-	server.jsonTemplates.ExecuteTemplate(w, responseTemplate, data)
+	templates.ExecuteTemplate(w, responseTemplate, data)
 }
 
 func (server *Server) Operations(w http.ResponseWriter, r *http.Request) {
@@ -124,7 +125,7 @@ func (server *Server) Operations(w http.ResponseWriter, r *http.Request) {
 	// make sure actions has at least one thing in it
 	p.Actions = append(p.Actions, SlackAction{})
 
-	if requestToken(r, p) != server.verificationToken {
+	if requestToken(r, p) != server.VerificationToken {
 		http.Error(w, "Invalid Token", http.StatusForbidden)
 		return
 	}
