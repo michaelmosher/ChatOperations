@@ -50,8 +50,14 @@ func (server *Server) chooseAction(p SlackPayload) (string, interface{}) {
 }
 
 func (server *Server) chooseServer(p SlackPayload) (string, interface{}) {
+	serverIdString := p.Actions[0].Value
+
+	if serverIdString == "else" {
+		return "coming_soon.json", ""
+	}
+
 	requestId, _ := strconv.Atoi(p.Callback_id)
-	serverId, _ := strconv.Atoi(p.Actions[0].Value)
+	serverId, _ := strconv.Atoi(serverIdString)
 
 	opsRequest, err := server.OpsInteractor.SetRequestServer(requestId, serverId)
 
@@ -112,7 +118,7 @@ func (server *Server) routeRequest(w http.ResponseWriter, p SlackPayload) {
 		responseTemplate, data = server.opsResponseReceive(p)
 	default:
 		responseTemplate = "choose_action.json"
-		data = ""
+		data = server.OpsInteractor.ActionOptions()
 	}
 
 	templates.ExecuteTemplate(w, responseTemplate, data)

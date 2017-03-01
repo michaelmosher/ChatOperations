@@ -30,6 +30,16 @@ func (ops *OperationsInteractor) loadRequest(requestId int) (operations.Request,
 	return o, err
 }
 
+func (ops *OperationsInteractor) ActionOptions() []operations.Action {
+	actions, _ := ops.ActionStore.FindAll()
+	return actions
+}
+
+func (ops *OperationsInteractor) ServerOptions() []operations.Server {
+	 servers, _ := ops.ServerStore.FindAll()
+	 return servers
+}
+
 func (ops *OperationsInteractor) SetRequestAction(o operations.Request, actionId int) (operations.Request, error) {
 	action, err := ops.ActionStore.FindById(actionId)
 	o.Action = action
