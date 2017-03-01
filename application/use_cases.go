@@ -17,6 +17,19 @@ type OperationsInteractor struct {
 	Notifier     Notifier
 }
 
+func (ops *OperationsInteractor) loadRequest(requestId int) (operations.Request, error) {
+	o, err := ops.RequestStore.FindById(requestId)
+
+	if err != nil {
+		return o, err
+	}
+
+	o.Action, err = ops.ActionStore.FindById(int(o.Action.Id))
+	o.Server, err = ops.ServerStore.FindById(int(o.Server.Id))
+
+	return o, err
+}
+
 func (ops *OperationsInteractor) SetRequestAction(o operations.Request, actionId int) (operations.Request, error) {
 	action, err := ops.ActionStore.FindById(actionId)
 	o.Action = action
@@ -28,7 +41,7 @@ func (ops *OperationsInteractor) SetRequestAction(o operations.Request, actionId
 }
 
 func (ops *OperationsInteractor) SetRequestServer(requestId int, serverId int) (operations.Request, error) {
-	o, err := ops.RequestStore.FindById(requestId)
+	o, err := ops.loadRequest(requestId)
 	server, err := ops.ServerStore.FindById(serverId)
 
 	o.Server = server
@@ -38,7 +51,7 @@ func (ops *OperationsInteractor) SetRequestServer(requestId int, serverId int) (
 }
 
 func (ops *OperationsInteractor) SubmitRequest(requestId int) error {
-	o, err := ops.RequestStore.FindById(requestId)
+	o, err := ops.loadRequest(requestId)
 
 	if err != nil {
 		return err
@@ -48,7 +61,7 @@ func (ops *OperationsInteractor) SubmitRequest(requestId int) error {
 }
 
 func (ops *OperationsInteractor) ApproveRequest(requestId int, responder string) (operations.Request, error) {
-	o, err := ops.RequestStore.FindById(requestId)
+	o, err := ops.loadRequest(requestId)
 	o.Approved = true
 	o.Responder = responder
 
@@ -60,7 +73,7 @@ func (ops *OperationsInteractor) ApproveRequest(requestId int, responder string)
 }
 
 func (ops *OperationsInteractor) RejectRequest(requestId int, responder string) (operations.Request, error) {
-	o, err := ops.RequestStore.FindById(requestId)
+	o, err := ops.loadRequest(requestId)
 	o.Approved = false
 	o.Responder = responder
 

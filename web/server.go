@@ -10,7 +10,7 @@ import (
 	"chatoperations/operations"
 )
 
-var templates = template.Must(template.ParseGlob("templates/*.json"))
+var templates = template.Must(template.ParseGlob("web/templates/*.json"))
 
 type Server struct {
 	VerificationToken string
