@@ -36,16 +36,42 @@ func (ops *OperationsInteractor) ActionOptions() []operations.Action {
 }
 
 func (ops *OperationsInteractor) ServerOptions() []operations.Server {
-	 servers, _ := ops.ServerStore.FindAll()
-	 return servers
+	servers, _ := ops.ServerStore.FindAll()
+	return servers
 }
 
-func (ops *OperationsInteractor) SetRequestAction(o operations.Request, actionId int) (operations.Request, error) {
+func (ops *OperationsInteractor) NewRequest() (o operations.Request, err error) {
+	o = operations.Request{}
+	o.Id, err = ops.RequestStore.Store(o)
+
+	return o, err
+}
+
+func (ops *OperationsInteractor) SetRequestRequester(requestId int, requester string) (operations.Request, error) {
+	o, err := ops.loadRequest(requestId)
+
+	o.Requester = requester
+
+	_, err = ops.RequestStore.Store(o)
+	return o, err
+}
+
+func (ops *OperationsInteractor) SetRequestResponseUrl(requestId int, response_url string) (operations.Request, error) {
+	o, err := ops.loadRequest(requestId)
+
+	o.Response_url = response_url
+
+	_, err = ops.RequestStore.Store(o)
+	return o, err
+}
+
+func (ops *OperationsInteractor) SetRequestAction(requestId int, actionId int) (operations.Request, error) {
+	o, err := ops.loadRequest(requestId)
 	action, err := ops.ActionStore.FindById(actionId)
+
 	o.Action = action
 
-	requestId, err := ops.RequestStore.Store(o)
-	o.Id = requestId
+	_, err = ops.RequestStore.Store(o)
 
 	return o, err
 }

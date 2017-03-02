@@ -17,6 +17,16 @@ type Server struct {
 	OpsInteractor     application.OperationsInteractor
 }
 
+type ActionTemplateData struct {
+	RequestId int64
+	Actions   []operations.Action
+}
+
+type ServerTemplateData struct {
+	RequestId int
+	Servers   []operations.Server
+}
+
 func (p *SlackPayload) unmarshal(r *http.Request) {
 	json.Unmarshal([]byte(r.PostFormValue("payload")), &p)
 }
@@ -30,26 +40,43 @@ func requestToken(r *http.Request, p SlackPayload) string {
 	return p.Token
 }
 
-func (server *Server) chooseAction(p SlackPayload) (string, interface{}) {
+func (server *Server) newRequest() (string, interface{}) {
+	opsRequest, err := server.OpsInteractor.NewRequest()
+
+	if err != nil {
+		return "something_went_wrong.json", err.Error
+	}
+
+	return "choose_action.json", ActionTemplateData{
+		RequestId: opsRequest.Id,
+		Actions:   server.OpsInteractor.ActionOptions(),
+	}
+}
+
+func (server *Server) updateAction(p SlackPayload) (string, interface{}) {
 	actionIdString := p.Actions[0].Value
 
 	if actionIdString == "else" {
 		return "coming_soon.json", ""
 	}
 
+	requestId, _ := strconv.Atoi(p.Callback_id)
 	actionId, _ := strconv.Atoi(actionIdString)
-	opsRequest, err := server.OpsInteractor.SetRequestAction(operations.Request{
-		Requester:    p.User.Name,
-		Response_url: p.Response_url,
-	}, actionId)
+
+	_, err := server.OpsInteractor.SetRequestRequester(requestId, p.User.Name)
+	_, err = server.OpsInteractor.SetRequestAction(requestId, actionId)
 
 	if err != nil {
-		return "something_went_wrong", err.Error
+		return "something_went_wrong.json", err.Error()
 	}
-	return "choose_server.json", opsRequest.Id
+
+	return "choose_server.json", ServerTemplateData{
+		RequestId: requestId,
+		Servers:   server.OpsInteractor.ServerOptions(),
+	}
 }
 
-func (server *Server) chooseServer(p SlackPayload) (string, interface{}) {
+func (server *Server) updateServer(p SlackPayload) (string, interface{}) {
 	serverIdString := p.Actions[0].Value
 
 	if serverIdString == "else" {
@@ -59,10 +86,11 @@ func (server *Server) chooseServer(p SlackPayload) (string, interface{}) {
 	requestId, _ := strconv.Atoi(p.Callback_id)
 	serverId, _ := strconv.Atoi(serverIdString)
 
+	_, err := server.OpsInteractor.SetRequestResponseUrl(requestId, p.Response_url)
 	opsRequest, err := server.OpsInteractor.SetRequestServer(requestId, serverId)
 
 	if err != nil {
-		return "something_went_wrong", err.Error
+		return "something_went_wrong.json", err.Error
 	}
 	return "confirm_request.json", opsRequest
 }
@@ -108,17 +136,16 @@ func (server *Server) routeRequest(w http.ResponseWriter, p SlackPayload) {
 	var data interface{}
 
 	switch p.Actions[0].Name {
-	case "choose_action":
-		responseTemplate, data = server.chooseAction(p)
-	case "choose_server":
-		responseTemplate, data = server.chooseServer(p)
+	case "action":
+		responseTemplate, data = server.updateAction(p)
+	case "server":
+		responseTemplate, data = server.updateServer(p)
 	case "submit_request":
 		responseTemplate, data = server.submitRequest(p)
 	case "ops_request_submitted":
 		responseTemplate, data = server.opsResponseReceive(p)
 	default:
-		responseTemplate = "choose_action.json"
-		data = server.OpsInteractor.ActionOptions()
+		responseTemplate, data = server.newRequest()
 	}
 
 	templates.ExecuteTemplate(w, responseTemplate, data)

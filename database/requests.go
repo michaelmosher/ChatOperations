@@ -14,8 +14,7 @@ type RequestRepo struct {
 
 func (repo *RequestRepo) new(o operations.Request) (id int64, err error) {
 	err = repo.QueryRow(
-		"insert into Requests (requester, actionId) values ($1, $2) returning id",
-		o.Requester, o.Action.Id,
+		"insert into Requests (requester) values ('pending') returning id",
 	).Scan(&id)
 
 	return id, err

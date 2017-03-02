@@ -4,26 +4,21 @@
         {
             "text": "Please choose a server:",
             "fallback": "Please use an official Slack client for Ops help",
-            "callback_id": "{{.}}",
+            "callback_id": "{{.RequestId}}",
             "attachment_type": "default",
-            "actions": [
+            "actions": [ {{- range .Servers }}
                 {
-                    "name": "choose_server",
-                    "text": "MoB Dev",
+                    "name": "server",
+                    "text": "{{.Title}}",
                     "type": "button",
-                    "value": "dev-wp-wise-fs-1"
+                    "value": "{{.Id}}"
                 },
+                {{- end }}
                 {
-                    "name": "choose_server",
-                    "text": "Products Dev",
+                    "name": "server",
+                    "text": "Something Else",
                     "type": "button",
-                    "value": "dev-wp-products-fs-1"
-                },
-                {
-                    "name": "choose_server",
-                    "text": "Features Dev",
-                    "type": "button",
-                    "value": "dev-wp-features-fs-1"
+                    "value": "else"
                 }
             ]
         }
