@@ -1,25 +1,25 @@
 {
-    "text": "{{.Requester}} has requested {{.Action.Title}} on {{.Server.Title}}.",
+    "text": "Please review your request before submitting it to Operations.",
     "attachments": [
         {
-            "text": "Please approve or reject the request:",
+            "text":"{{.Requester}} has requested {{.Action.Title}} on {{.Server.Title}}.",
             "fallback": "Please use an official Slack client for Ops help",
             "callback_id": "{{.Id}}",
             "attachment_type": "default",
             "actions": [
                 {
-                    "name": "ops_request_submitted",
-                    "text": "Approve",
+                    "name": "submit_request",
+                    "text": "Submit",
                    "style": "primary",
                     "type": "button",
-                    "value": "approved"
+                    "value": "submit"
                 },
                 {
-                    "name": "ops_request_submitted",
-                    "text": "Deny",
+                    "name": "submit_request",
+                    "text": "Cancel",
                    "style": "danger",
                     "type": "button",
-                    "value": "rejected"
+                    "value": "cancel"
                 }
             ]
         }

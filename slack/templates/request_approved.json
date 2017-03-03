@@ -1,4 +1,4 @@
 {
-    "text": ":white_check_mark: {{.Responder}} approved your request for {{.Action}} on {{.Server}}.",
+    "text": ":white_check_mark: {{.Responder}} approved your request for {{.Action.Title}} on {{.Server.Title}}.",
     "replace_original": false
 }

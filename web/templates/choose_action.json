@@ -4,17 +4,18 @@
         {
             "text": "Which action would you like performed?",
             "fallback": "Please use an official Slack client for Ops help",
-            "callback_id": "init",
+            "callback_id": "{{.RequestId}}",
             "attachment_type": "default",
-            "actions": [
+            "actions": [ {{- range .Actions }}
                 {
-                    "name": "choose_action",
-                    "text": "Config Loader",
+                    "name": "action",
+                    "text": "{{.Title}}",
                     "type": "button",
-                    "value": "configLoad"
+                    "value": "{{.Id}}"
                 },
+                {{- end }}
                 {
-                    "name": "choose_action",
+                    "name": "action",
                     "text": "Something Else",
                     "type": "button",
                     "value": "else"

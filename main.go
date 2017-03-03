@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"os"
 
+	"chatoperations/application"
 	"chatoperations/database"
-	"chatoperations/server"
 	"chatoperations/slack"
+	"chatoperations/web"
 )
 
 func index(w http.ResponseWriter, r *http.Request) {
@@ -29,12 +30,17 @@ func main() {
 		WebhookUrl:    os.Getenv("WebhookUrl"),
 	})
 
-	api := server.New(server.Config{
-		TemplatesGlob:     "server/templates/*.json",
+	app := application.OperationsInteractor{
+		ActionStore:  state.NewActionRepo(),
+		ServerStore:  state.NewServerRepo(),
+		RequestStore: state.NewRequestRepo(),
+		Notifier:     notifier,
+	}
+
+	api := web.Server{
 		VerificationToken: os.Getenv("VerificationToken"),
-		State:             state,
-		Notifier:          notifier,
-	})
+		OpsInteractor:     app,
+	}
 
 	mux.HandleFunc("/", index)
 	mux.HandleFunc("/operations", api.Operations)
