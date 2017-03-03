@@ -12,7 +12,17 @@ type RequestRepo struct {
 	*DB
 }
 
-func (repo *RequestRepo) new(o operations.Request) (id int64, err error) {
+func nullIntHelper(id int64) sql.NullInt64 {
+	nullInt := sql.NullInt64{Int64: id, Valid: false}
+
+	if id != 0 {
+		nullInt.Valid = true
+	}
+
+	return nullInt
+}
+
+func (repo *RequestRepo) new() (id int64, err error) {
 	err = repo.QueryRow(
 		"insert into Requests (requester) values ('pending') returning id",
 	).Scan(&id)
@@ -21,9 +31,12 @@ func (repo *RequestRepo) new(o operations.Request) (id int64, err error) {
 }
 
 func (repo *RequestRepo) update(o operations.Request) (id int64, err error) {
+	actionId := nullIntHelper(o.Action.Id)
+	serverId := nullIntHelper(o.Server.Id)
+
 	err = repo.QueryRow(
-		"update Requests set actionId = $2, serverId = $3, responder = $4, approved = $5, response_url = $6 where id = $1 returning id",
-		o.Id, o.Action.Id, o.Server.Id, o.Responder, o.Approved, o.Response_url,
+		"update Requests set requester = $2, actionId = $3, serverId = $4, responder = $5, approved = $6, response_url = $7 where id = $1 returning id",
+		o.Id, o.Requester, actionId, serverId, o.Responder, o.Approved, o.Response_url,
 	).Scan(&id)
 
 	return id, err
@@ -31,7 +44,7 @@ func (repo *RequestRepo) update(o operations.Request) (id int64, err error) {
 
 func (repo *RequestRepo) Store(o operations.Request) (int64, error) {
 	if o.Id == 0 {
-		return repo.new(o)
+		return repo.new()
 	}
 
 	return repo.update(o)
