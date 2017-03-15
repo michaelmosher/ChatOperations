@@ -101,7 +101,7 @@ func (ops *OperationsInteractor) ApproveRequest(requestId int, responder string)
 	o.Approved = true
 	o.Responder = responder
 
-	go ops.Notifier.NotifyRequestSubmitted(o)
+	go ops.Notifier.NotifyRequestApproved(o)
 	// go exec request
 
 	_, err = ops.RequestStore.Store(o)
