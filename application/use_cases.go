@@ -102,7 +102,7 @@ func (ops *OperationsInteractor) ApproveRequest(requestId int, responder string)
 	o.Responder = responder
 
 	go ops.Notifier.NotifyRequestApproved(o)
-	// go exec request
+	go ops.executeRequest(o)
 
 	_, err = ops.RequestStore.Store(o)
 	return o, err
@@ -117,4 +117,11 @@ func (ops *OperationsInteractor) RejectRequest(requestId int, responder string) 
 
 	_, err = ops.RequestStore.Store(o)
 	return o, err
+}
+
+func (ops *OperationsInteractor) executeRequest(o operations.Request) error {
+	// execute request.action.command
+	// update database (success/failure)
+	// notify requester
+	// notify approver
 }
