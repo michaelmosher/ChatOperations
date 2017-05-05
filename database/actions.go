@@ -3,7 +3,7 @@ package database
 import (
 	"log"
 
-	_ "github.com/lib/pq"
+	_ "github.com/go-sql-driver/mysql"
 
 	"chatOperations/operations"
 )
