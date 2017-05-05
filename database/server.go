@@ -5,7 +5,7 @@ import (
 
 	_ "github.com/lib/pq"
 
-	"chatoperations/operations"
+	"chatOperations/operations"
 )
 
 type ServerRepo struct {

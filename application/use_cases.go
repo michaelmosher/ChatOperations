@@ -1,7 +1,7 @@
 package application
 
 import (
-	"chatoperations/operations"
+	"chatOperations/operations"
 )
 
 type Notifier interface {

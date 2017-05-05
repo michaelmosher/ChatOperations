@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"os"
 
-	"chatoperations/application"
-	"chatoperations/database"
-	"chatoperations/slack"
-	"chatoperations/web"
+	"chatOperations/application"
+	"chatOperations/database"
+	"chatOperations/slack"
+	"chatOperations/web"
 )
 
 func index(w http.ResponseWriter, r *http.Request) {
