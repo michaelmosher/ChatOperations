@@ -23,11 +23,14 @@ func nullIntHelper(id int64) sql.NullInt64 {
 }
 
 func (repo *RequestRepo) new() (id int64, err error) {
-	err = repo.QueryRow(
-		"insert into Requests (requester) values ('pending') returning id",
-	).Scan(&id)
+	stmt, err := repo.Prepare("INSERT into Requests SET requester='pending'")
+	res, err := stmt.Exec()
 
-	return id, err
+	if err != nil {
+		return 0, err
+	}
+
+	return res.LastInsertId()
 }
 
 func (repo *RequestRepo) update(o operations.Request) (id int64, err error) {
