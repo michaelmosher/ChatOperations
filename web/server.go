@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"chatoperations/application"
-	"chatoperations/operations"
+	"chatOperations/application"
+	"chatOperations/operations"
 )
 
 var templates = template.Must(template.ParseGlob("web/templates/*.json"))
