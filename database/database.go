@@ -2,7 +2,7 @@ package database
 
 import (
 	"database/sql"
-	_ "github.com/lib/pq"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 type DB struct {
@@ -10,7 +10,7 @@ type DB struct {
 }
 
 func New(dataSourceName string) (*DB, error) {
-	db, err := sql.Open("postgres", dataSourceName)
+	db, err := sql.Open("mysql", dataSourceName)
 	if err != nil {
 		return nil, err
 	}
