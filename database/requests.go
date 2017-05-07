@@ -38,8 +38,8 @@ func (repo *RequestRepo) update(o operations.Request) (id int64, err error) {
 	serverId := nullIntHelper(o.Server.Id)
 
 	err = repo.QueryRow(
-		"update Requests set requester = $2, actionId = $3, serverId = $4, responder = $5, approved = $6, response_url = $7 where id = $1 returning id",
-		o.Id, o.Requester, actionId, serverId, o.Responder, o.Approved, o.Response_url,
+		"update Requests set requester = ?, actionId = ?, serverId = ?, responder = ?, approved = ?, response_url = ? where id = ? returning id",
+		o.Requester, actionId, serverId, o.Responder, o.Approved, o.Response_url, o.Id,
 	).Scan(&id)
 
 	return id, err
@@ -65,7 +65,7 @@ func (repo *RequestRepo) FindById(requestId int) (operations.Request, error) {
 	)
 
 	err := repo.QueryRow(
-		"select id, requester, actionId, serverId, responder, approved, response_url from Requests where id = $1",
+		"select id, requester, actionId, serverId, responder, approved, response_url from Requests where id = ?",
 		requestId,
 	).Scan(&id, &requester, &actionId, &serverId, &responder, &approved, &response_url)
 

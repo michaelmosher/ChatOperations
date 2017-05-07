@@ -21,7 +21,7 @@ func (repo *ServerRepo) FindById(serviceId int) (operations.Server, error) {
 	)
 
 	err := repo.QueryRow(
-		"select id, title, address, environment from Servers where id = $1", serviceId,
+		"select id, title, address, environment from Servers where id = ?", serviceId,
 	).Scan(&id, &title, &address, &environment)
 
 	return operations.Server{
