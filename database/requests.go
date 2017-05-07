@@ -37,12 +37,14 @@ func (repo *RequestRepo) update(o operations.Request) (id int64, err error) {
 	actionId := nullIntHelper(o.Action.Id)
 	serverId := nullIntHelper(o.Server.Id)
 
-	err = repo.QueryRow(
-		"update Requests set requester = ?, actionId = ?, serverId = ?, responder = ?, approved = ?, response_url = ? where id = ? returning id",
-		o.Requester, actionId, serverId, o.Responder, o.Approved, o.Response_url, o.Id,
-	).Scan(&id)
+	stmt, _ := repo.Prepare("update Requests set requester = ?, actionId = ?, serverId = ?, responder = ?, approved = ?, response_url = ? where id = ?")
+	res, err := stmt.Exec(o.Requester, actionId, serverId, o.Responder, o.Approved, o.Response_url, o.Id)
 
-	return id, err
+	if err != nil {
+		return 0, err
+	}
+
+	return res.LastInsertId()
 }
 
 func (repo *RequestRepo) Store(o operations.Request) (int64, error) {
