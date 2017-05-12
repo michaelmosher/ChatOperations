@@ -3,9 +3,9 @@ package database
 import (
 	"database/sql"
 
-	_ "github.com/lib/pq"
+	_ "github.com/go-sql-driver/mysql"
 
-	"chatoperations/operations"
+	"chatOperations/operations"
 )
 
 type RequestRepo struct {
@@ -23,23 +23,28 @@ func nullIntHelper(id int64) sql.NullInt64 {
 }
 
 func (repo *RequestRepo) new() (id int64, err error) {
-	err = repo.QueryRow(
-		"insert into Requests (requester) values ('pending') returning id",
-	).Scan(&id)
+	stmt, err := repo.Prepare("INSERT into Requests SET requester='pending'")
+	res, err := stmt.Exec()
 
-	return id, err
+	if err != nil {
+		return 0, err
+	}
+
+	return res.LastInsertId()
 }
 
 func (repo *RequestRepo) update(o operations.Request) (id int64, err error) {
 	actionId := nullIntHelper(o.Action.Id)
 	serverId := nullIntHelper(o.Server.Id)
 
-	err = repo.QueryRow(
-		"update Requests set requester = $2, actionId = $3, serverId = $4, responder = $5, approved = $6, response_url = $7 where id = $1 returning id",
-		o.Id, o.Requester, actionId, serverId, o.Responder, o.Approved, o.Response_url,
-	).Scan(&id)
+	stmt, _ := repo.Prepare("update Requests set requester = ?, actionId = ?, serverId = ?, responder = ?, approved = ?, response_url = ? where id = ?")
+	res, err := stmt.Exec(o.Requester, actionId, serverId, o.Responder, o.Approved, o.Response_url, o.Id)
 
-	return id, err
+	if err != nil {
+		return 0, err
+	}
+
+	return res.LastInsertId()
 }
 
 func (repo *RequestRepo) Store(o operations.Request) (int64, error) {
@@ -62,7 +67,7 @@ func (repo *RequestRepo) FindById(requestId int) (operations.Request, error) {
 	)
 
 	err := repo.QueryRow(
-		"select id, requester, actionId, serverId, responder, approved, response_url from Requests where id = $1",
+		"select id, requester, actionId, serverId, responder, approved, response_url from Requests where id = ?",
 		requestId,
 	).Scan(&id, &requester, &actionId, &serverId, &responder, &approved, &response_url)
 

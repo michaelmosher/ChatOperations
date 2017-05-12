@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"chatoperations/operations"
+	"chatOperations/operations"
 )
 
 type Config struct {

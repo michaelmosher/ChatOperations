@@ -1,5 +1,5 @@
 drop table if exists Servers;
-create table if not exists Servers(
+create table Servers(
 	id serial primary key not null,
 	title text,
 	address text,
@@ -8,11 +8,10 @@ create table if not exists Servers(
 
 insert into Servers (title, address, environment) values
 	('MoB Dev', 'dev-wp-wise-fs-1.spindance.net', 'wp_dev'),
-	('Products Dev', 'dev-wp-products-fs-1.spindance.net', 'wp_dev'),
-	('Features Dev', 'dev-wp-features-fs-1.spindance.net', 'wp_dev');
+	('Products Dev', 'dev-wp-products-fs-1.spindance.net', 'wp_dev');
 
 drop table if exists Actions;
-create table if not exists Actions(
+create table Actions(
 	id serial primary key not null,
 	title text,
 	command text
@@ -31,21 +30,6 @@ create table if not exists Requests(
 	approved bool,
 	success bool,
 	response_url text,
-	created_at timestamp,
-	last_modified timestamp
+	created_at datetime default CURRENT_TIMESTAMP,
+	last_modified datetime on update CURRENT_TIMESTAMP
 );
-
-alter table requests alter column created_at set default now();
-
-create or replace function update_last_modified() returns trigger as $$
-begin
-    new.last_modified = now();
-    return new;
-end;
-$$ language 'plpgsql';
-
-create trigger update_last_modified
-    before update
-    on Requests
-    for each row
-    execute procedure update_last_modified();

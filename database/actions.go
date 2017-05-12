@@ -3,9 +3,9 @@ package database
 import (
 	"log"
 
-	_ "github.com/lib/pq"
+	_ "github.com/go-sql-driver/mysql"
 
-	"chatoperations/operations"
+	"chatOperations/operations"
 )
 
 type ActionRepo struct {
@@ -20,7 +20,7 @@ func (repo *ActionRepo) FindById(actionId int) (operations.Action, error) {
 	)
 
 	err := repo.QueryRow(
-		"select id, title, command from Actions where id = $1", actionId,
+		"select id, title, command from Actions where id = ?", actionId,
 	).Scan(&id, &title, &command)
 
 	return operations.Action{
