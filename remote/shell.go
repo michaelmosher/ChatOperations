@@ -3,7 +3,7 @@ package remote
 import (
 	"bytes"
 	"golang.org/x/crypto/ssh"
-	"chatoperations/operations"
+	"chatOperations/operations"
 )
 
 type Shell struct {

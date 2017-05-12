@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"chatoperations/operations"
-	"chatoperations/remote"
+	"chatOperations/operations"
+	"chatOperations/remote"
 )
 
 func main() {
