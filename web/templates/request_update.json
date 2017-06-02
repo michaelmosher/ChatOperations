@@ -1,6 +1,0 @@
-{
-    "text": "{{if .Approved}}:white_check_mark: {{.Responder}} approved your request.
-    {{else}}:x: {{.Responder}} reject your request.
-    {{end}}",
-    "replace_original": false
-}

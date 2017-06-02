@@ -1,8 +1,0 @@
-{
-    "text": "{{.Requester}} has requested {{.Action.Title}} on {{.Server.Title}}.",
-    "attachments": [
-        {
-            "text": ":white_check_mark: {{.Responder}} approved this request."
-        }
-    ]
-}

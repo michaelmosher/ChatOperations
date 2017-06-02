@@ -1,4 +1,0 @@
-{
-    "text": ":x: {{.Responder}} rejected your request for {{.Action.Title}} on {{.Server.Title}}.",
-    "replace_original": false
-}
