@@ -15,7 +15,7 @@ export class ResponseURL {
 }
 
 export interface Request {
-	id:           number
+	callback_id:  string
 	action:       string
 	requester:    string
 	responder:    string
@@ -29,7 +29,6 @@ export interface Request {
 }
 
 export interface RequestRepo {
-	findAllTypes(): Promise<Array<string>>
-	findById(id: number): Promise<Request>
+	findById(callback_id: string): Promise<Request>
 	store(r: Request): Promise<Request>
 }

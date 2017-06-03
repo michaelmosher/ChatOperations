@@ -4,8 +4,8 @@ import * as Deploy from '../operations/deploy'
 export class Manager {
 	constructor(public requestRepo: Operations.RequestRepo) {}
 
-	async listActions() : Promise<Array<string>> {
-		return this.requestRepo.findAllTypes()
+	listActions() : Array<string> {
+		return ['deploy']
 	}
 
 	async init(type: string, requester: string) : Promise<Operations.Request> {
@@ -13,8 +13,8 @@ export class Manager {
 		return this.requestRepo.store(r)
 	}
 
-	async load(id: number) : Promise<Operations.Request> {
-		return this.requestRepo.findById(id)
+	async load(callback_id: string) : Promise<Operations.Request> {
+		return this.requestRepo.findById(callback_id)
 	}
 
 	async update(r: Operations.Request, u: any) : Promise<Operations.Request|Array<any>> {

@@ -30,7 +30,7 @@ export class Notifier {
     requestSubmitted(r: Operations.Request) : void {
         let body = Templates.submitRequest
         body.text = r.summary()
-        body.attachments[0].callback_id = r.id
+        body.attachments[0].callback_id = r.callback_id
 
         this.http.post({
             url: this.hostingWebhook, 

@@ -7,10 +7,7 @@ import * as Operations from '../operations/operations'
 
 describe('Request.Manager', () => {
 	let dummyRequestRepo = {
-		findAllTypes: async function(): Promise<Array<string>> {
-			return Promise.resolve(['deploy'])
-		},
-		findById: async function(id: number): Promise<Operations.Request> {
+		findById: async function(callback_id: string): Promise<Operations.Request> {
 			let r = Deploy.init('michael')
 			return Promise.resolve(r)
 		},
@@ -21,12 +18,9 @@ describe('Request.Manager', () => {
 	let requestManager = new Request.Manager(dummyRequestRepo)
 
 	describe('.listActions()', () => {
-		it('returns the expected list', (done) => {
-			requestManager.listActions()
-			.then(list => {
-				expect(list).to.have.members(['deploy'])
-				done()
-			})
+		it('returns the expected list', () => {
+			let list = requestManager.listActions()
+			expect(list).to.have.members(['deploy'])
 		})
 	})
 
@@ -46,7 +40,7 @@ describe('Request.Manager', () => {
 
 	describe('.load()', () => {
 		it('returns the specified request', (done) => {
-			requestManager.load(1)
+			requestManager.load('deploy_michael_12345678')
 			.then(request => {
 				expect(request).to.be.an.instanceof(Deploy.Request)
 				done()

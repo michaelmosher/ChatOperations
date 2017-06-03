@@ -4,7 +4,7 @@ export class Server {
 
 export class Request {
 	readonly action: string
-	id:           number
+	callback_id:  string
 	responder:    string
 	approved:     boolean
 	succeeded:    boolean
@@ -12,7 +12,9 @@ export class Request {
 	server:       Server
 
     constructor(public requester: string) {
+		let suffix = String(Date.now() % 100000000) // random enough
 		this.action = 'deploy'
+		this.callback_id = `deploy_${requester}_${suffix}`
     }
 
 	update(u: any) : void {

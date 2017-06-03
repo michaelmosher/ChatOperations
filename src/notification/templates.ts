@@ -12,7 +12,7 @@ export var submitRequest = {
         {
             text: "Please approve or reject the request:",
             fallback: "Please use an official Slack client for Ops help",
-            callback_id: 0, // TODO
+            callback_id: "0", // TODO
             attachment_type: "default",
             actions: [
                 {
