@@ -3,6 +3,7 @@ export class Server {
 }
 
 export class Request {
+	[k: string]: any;
 	readonly action: string
 	callback_id:  string
 	responder:    string

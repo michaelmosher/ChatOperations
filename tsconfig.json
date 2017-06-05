@@ -12,6 +12,6 @@
         "outDir": "lib/",
         "strict": true,
         "rootDir": "src/",
-        "lib": [ "ES2015" ]
+        "lib": [ "es2015", "dom"]
     }
 }

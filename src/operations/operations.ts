@@ -15,6 +15,7 @@ export class ResponseURL {
 }
 
 export interface Request {
+	[k: string]: any;
 	callback_id:  string
 	action:       string
 	requester:    string

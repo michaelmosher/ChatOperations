@@ -1,8 +1,14 @@
 import * as Operations from '../operations/operations'
 import * as Deploy from '../operations/deploy'
 
+interface notifier {
+	requestSubmitted(r: Operations.Request) : void
+	requestApproved(r: Operations.Request) : void
+	requestDenied(r: Operations.Request) : void
+}
+
 export class Manager {
-	constructor(public requestRepo: Operations.RequestRepo) {}
+	constructor(public requestRepo: Operations.RequestRepo, public notifier: notifier) {}
 
 	listActions() : Array<string> {
 		return ['deploy']
