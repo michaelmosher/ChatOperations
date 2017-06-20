@@ -1,0 +1,17 @@
+{
+    "include": [
+        "src/**/*"
+    ],
+    "exclude": [
+        "**/*_test.ts"
+    ],
+    "compilerOptions": {
+        "target": "es5",
+        "module": "commonjs",
+        "sourceMap": true,
+        "outDir": "lib/",
+        "strict": true,
+        "rootDir": "src/",
+        "lib": [ "es2015", "dom"]
+    }
+}
