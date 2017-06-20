@@ -10,35 +10,41 @@ interface WebClient {
 export class Notifier {
     constructor(public http: WebClient, readonly hostingWebhook: string) { }
 
-    reportError(url: string, err: Error) : void {
+    async promPostRequest(options: any): Promise<any> {
+        return new Promise((resolve, reject) => {
+            this.http.post(options, (err, req, body) => {
+                if (err) {
+                    return reject(err)
+                }
+                if (req.statusCode !== 200) {
+                    return reject(body.error)
+                }
+                return resolve(body)
+            })
+        })
+    }
+
+    reportError(url: string, err: Error) : Promise<any> {
         let body = Templates.errorReport
         body.attachments[0].text = err.message
-        return this.http.post({ url: url, body: body })
+        return this.promPostRequest({ url: url, body: body })
     }
 
-    handleErrors(url: string) : callback {
-        return (err: Error, req: any, body: any) => {
-            if (err) {
-                return this.reportError(url, err)
-            }
-            if (req.statusCode !== 200) {
-                return this.reportError(url, body.error)
-            }
-        }
-    }
-
-    requestSubmitted(r: Operations.Request) : void {
+    requestSubmitted(r: Operations.Request) : Promise<any> {
         let body = Templates.submitRequest
         body.text = r.summary()
         body.attachments[0].callback_id = r.callback_id
 
-        this.http.post({
+        return this.promPostRequest({
             url: this.hostingWebhook, 
             body: body
-        }, this.handleErrors(r.response_url))
+        })
+        .catch(error => {
+            this.reportError(r.response_url, error)
+        })
     }
 
-    requestAnswered(r: Operations.Request, approved: boolean) : void {
+    requestAnswered(r: Operations.Request, approved: boolean) : Promise<any> {
         let body = {
             text: '',
             replace_original: false
@@ -48,10 +54,13 @@ export class Notifier {
             ? `:white_check_mark: ${r.responder} approved your request.`
             : `:x: ${r.responder} denied your request.`
 
-        this.http.post({
-            url: r.response_url,
+        return this.promPostRequest({
+            url: r.response_url, 
             body: body
-        }, this.handleErrors(this.hostingWebhook))
+        })
+        .catch(error => {
+            this.reportError(this.hostingWebhook, error)
+        })
     }
 
     requestApproved(r: Operations.Request) : void {

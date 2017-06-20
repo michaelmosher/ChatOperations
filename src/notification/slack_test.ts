@@ -33,13 +33,6 @@ describe('Slack.Notifier', () => {
         })
     })
 
-    describe('.handleErrors', () => {
-        it('returns a function to handle http request errors', () => {
-            let handler: callback = slackNotifier.handleErrors('some.url.com')
-            expect(handler).to.exist
-        })
-    })
-
     describe('.requestSubmitted', () => {
         beforeEach(() => {
             slackNotifier.http.post = function(options: any, cb: callback) : void {

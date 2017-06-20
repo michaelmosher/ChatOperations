@@ -15,7 +15,12 @@ describe('Request.Manager', () => {
 			return Promise.resolve(r)
 		}
 	}
-	let requestManager = new Request.Manager(dummyRequestRepo)
+	let dummyNotifier = {
+		requestSubmitted(r: Operations.Request) : void {},
+		requestApproved(r: Operations.Request) : void {},
+		requestDenied(r: Operations.Request) : void {}
+	}
+	let requestManager = new Request.Manager(dummyRequestRepo, dummyNotifier)
 
 	describe('.listActions()', () => {
 		it('returns the expected list', () => {
